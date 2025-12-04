@@ -2,13 +2,14 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Activity, Coins, X, Sparkles, Wifi, Battery, Zap, Lock, Copy } from 'lucide-react';
+import { Send, Activity, Coins, X, Sparkles, Wifi, Battery, Zap, Lock, Copy, Share2 } from 'lucide-react';
 import { astrologyService, HoroscopeData } from '@/services/astrologyService';
 import { geminiService } from '@/services/geminiService';
 import { security } from '@/lib/security';
 import { paymentService } from '@/services/paymentService';
 import { createClient } from '@/lib/supabase';
-import { cryptoService } from '@/lib/crypto'; // Import encryption helper
+import { cryptoService } from '@/lib/crypto'; 
+import { audioService } from '@/services/audioService'; // IMPORT AUDIO
 
 interface GodDashboardProps { userData: any; }
 
@@ -60,6 +61,7 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
     }
 
     const init = async () => {
+      audioService.play('init'); // AUDIO: Init
       setMessages([{ id: generateId(), text: "Initializing Neural Link...", sender: 'god' }]);
       const supabase = createClient();
 
@@ -112,6 +114,7 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
 
       } catch (e: any) {
         setLoading(false);
+        audioService.play('error'); // AUDIO: Error
         setMessages(prev => [...prev, { id: generateId(), text: `Connection Failed: ${e.message}`, sender: 'god' }]);
       }
     };
@@ -168,6 +171,7 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
     if (!rawText.trim() || isTyping) return;
 
     if (!security.checkRateLimit('chat_msg', 10, 60)) {
+        audioService.play('error');
         setMessages(prev => [...prev, { id: generateId(), text: "SYSTEM ALERT: RATE LIMIT EXCEEDED.", sender: 'god' }]);
         return;
     }
@@ -178,6 +182,7 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
     setEnergy(e => e - 1);
     inputRef.current?.focus();
     
+    audioService.play('message'); // AUDIO: User Send
     const newHistory: Message[] = [...messages, { id: generateId(), text, sender: 'user' }];
     setMessages(newHistory);
     
@@ -199,11 +204,13 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
       );
       
       setMessages(prev => [...prev, { id: generateId(), text: response, sender: 'god' }]);
+      audioService.play('message'); // AUDIO: God Reply
       
       // SAVE GOD MSG (Encrypted)
       saveMessage(response, 'god');
 
     } catch (err) {
+      audioService.play('error');
       setMessages(prev => [...prev, { id: generateId(), text: "Signal Lost.", sender: 'god' }]);
     } finally {
       setIsTyping(false);
@@ -280,12 +287,30 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
           >
-            <div className={`max-w-[85%] md:max-w-[65%] px-5 py-3 rounded-2xl text-[15px] leading-relaxed shadow-sm ${
+            <div className={`max-w-[85%] md:max-w-[65%] px-5 py-3 rounded-2xl text-[15px] leading-relaxed shadow-sm relative group ${
               msg.sender === 'god' 
                 ? 'bg-[#1C1C1E] border border-white/5 text-[#F5F5F7] rounded-tl-sm font-mono shadow-[0_0_30px_rgba(0,0,0,0.2)]' 
                 : 'bg-[#00FF41] text-black font-medium rounded-tr-sm shadow-[0_0_15px_rgba(0,255,65,0.15)]'
             }`}>
               {msg.text}
+              
+              {/* SHARE BUTTON FOR GOD MESSAGES */}
+              {msg.sender === 'god' && (
+                  <button 
+                    onClick={() => {
+                        const shareText = `The System just analyzed my soul.\n\n"${msg.text.substring(0, 100)}..."\n\n— theg0d.com #CyberVedic`;
+                        if (navigator.share) {
+                            navigator.share({ title: 'theg0d', text: shareText, url: 'https://theg0d.com' });
+                        } else {
+                            navigator.clipboard.writeText(shareText);
+                            alert("Analysis Copied to Clipboard.");
+                        }
+                    }}
+                    className="absolute -right-8 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-[#86868B] hover:text-[#00FF41]"
+                  >
+                    <Share2 className="w-4 h-4" />
+                  </button>
+              )}
             </div>
           </motion.div>
         ))}
@@ -378,6 +403,10 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
           </motion.div>
         )}
       </AnimatePresence>
+      {/* --- FOOTER STATUS --- */}
+      <div className="bg-black text-[#333] text-[9px] font-mono text-center py-1 uppercase tracking-widest select-none">
+        SERVER: ONLINE | LATENCY: {Math.floor(Math.random() * 20) + 10}MS | ENCRYPTION: AES-256
+      </div>
     </div>
   );
 }
