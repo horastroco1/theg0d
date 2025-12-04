@@ -345,8 +345,11 @@ export default function TheGate({ onSubmit }: TheGateProps) {
     <div className={`min-h-screen flex flex-col items-center justify-center relative p-6 bg-black text-[#F5F5F7] overflow-hidden font-sans ${isRTL ? 'rtl' : 'ltr'}`} dir={isRTL ? 'rtl' : 'ltr'}>
       
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-        <div className="absolute top-[-20%] left-[20%] w-[500px] h-[500px] bg-[#00FF41] rounded-full mix-blend-screen filter blur-[150px] opacity-10 animate-pulse"></div>
-        <div className="absolute bottom-[-10%] right-[10%] w-[300px] h-[300px] bg-blue-500 rounded-full mix-blend-screen filter blur-[120px] opacity-10"></div>
+        <div className="absolute top-[-20%] left-[20%] w-[500px] h-[500px] bg-[#00FF41] rounded-full mix-blend-screen filter blur-[150px] opacity-10 animate-pulse hidden md:block"></div>
+        <div className="absolute bottom-[-10%] right-[10%] w-[300px] h-[300px] bg-blue-500 rounded-full mix-blend-screen filter blur-[120px] opacity-10 hidden md:block"></div>
+        
+        {/* Mobile Glows */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[500px] bg-[#00FF41] rounded-full mix-blend-screen filter blur-[120px] opacity-5 md:hidden"></div>
       </div>
 
       <div className={`absolute top-6 z-50 flex gap-2 ${isRTL ? 'left-6' : 'right-6'}`}>
@@ -379,7 +382,7 @@ export default function TheGate({ onSubmit }: TheGateProps) {
               transition={{ delay: 0.3 }}
               className="inline-block"
             >
-              <h1 className="text-7xl md:text-9xl font-bold tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-white/40 select-none glitch-text" data-text="theg0d">
+              <h1 className="text-5xl md:text-9xl font-bold tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-white/40 select-none glitch-text" data-text="theg0d">
                 theg0d
               </h1>
             </motion.div>
@@ -512,27 +515,30 @@ export default function TheGate({ onSubmit }: TheGateProps) {
                                     <div className={`absolute top-3 text-[#86868B] ${isRTL ? 'right-4' : 'left-4'}`}>
                                     <Calendar className="w-5 h-5" />
                                     </div>
-                                    <div className={`flex gap-2 ${isRTL ? 'pr-12' : 'pl-12'}`}>
+                                    <div className={`flex gap-2 ${isRTL ? 'pr-12' : 'pl-12'} overflow-x-auto scrollbar-hide`}>
                                         <input 
-                                            type="text" 
+                                            type="tel" 
+                                            pattern="[0-9]*"
                                             value={day} 
                                             onChange={e => handleDateChange('d', e.target.value)}
                                             placeholder="DD"
-                                            className="ios-input w-1/3 text-center bg-black/50 border-white/10 focus:border-[#00FF41] text-white"
+                                            className="ios-input w-1/3 min-w-[60px] text-center bg-black/50 border-white/10 focus:border-[#00FF41] text-white"
                                         />
                                         <input 
-                                            type="text" 
+                                            type="tel" 
+                                            pattern="[0-9]*"
                                             value={month} 
                                             onChange={e => handleDateChange('m', e.target.value)}
                                             placeholder="MM"
-                                            className="ios-input w-1/3 text-center bg-black/50 border-white/10 focus:border-[#00FF41] text-white"
+                                            className="ios-input w-1/3 min-w-[60px] text-center bg-black/50 border-white/10 focus:border-[#00FF41] text-white"
                                         />
                                         <input 
-                                            type="text" 
+                                            type="tel" 
+                                            pattern="[0-9]*"
                                             value={year} 
                                             onChange={e => handleDateChange('y', e.target.value)}
                                             placeholder="YYYY"
-                                            className="ios-input w-1/3 text-center bg-black/50 border-white/10 focus:border-[#00FF41] text-white"
+                                            className="ios-input w-1/3 min-w-[80px] text-center bg-black/50 border-white/10 focus:border-[#00FF41] text-white"
                                         />
                                     </div>
                                 </div>

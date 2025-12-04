@@ -17,6 +17,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "theg0d | Cyber-Vedic Astrologer",
   description: "Analyze your fate with the precision of a machine god.",
+  viewport: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0", // Prevents zoom on inputs
 };
 
 export default function RootLayout({
@@ -29,6 +30,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-black text-white`}
       >
+        <div className="noise-overlay"></div>
         <ErrorBoundary>
             <SystemMenu />
             {children}

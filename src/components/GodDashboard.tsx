@@ -231,7 +231,7 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
   };
 
   return (
-    <div className="flex flex-col h-[100dvh] bg-black text-[#F5F5F7] font-sans overflow-hidden">
+    <div className="flex flex-col h-[100dvh] bg-black text-[#F5F5F7] font-sans overflow-hidden" style={{ height: '100dvh' }}>
       
       {/* --- HEADER --- */}
       <div className="pt-4 pb-2 px-6 flex justify-between items-center bg-black/80 backdrop-blur-xl z-50 border-b border-white/5 sticky top-0 flex-shrink-0">
@@ -282,7 +282,7 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
           >
             <div className={`max-w-[85%] md:max-w-[65%] px-5 py-3 rounded-2xl text-[15px] leading-relaxed shadow-sm ${
               msg.sender === 'god' 
-                ? 'bg-[#1C1C1E] border border-white/5 text-[#F5F5F7] rounded-tl-sm font-mono' 
+                ? 'bg-[#1C1C1E] border border-white/5 text-[#F5F5F7] rounded-tl-sm font-mono shadow-[0_0_30px_rgba(0,0,0,0.2)]' 
                 : 'bg-[#00FF41] text-black font-medium rounded-tr-sm shadow-[0_0_15px_rgba(0,255,65,0.15)]'
             }`}>
               {msg.text}
@@ -326,7 +326,7 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
                 className="w-full bg-[#1C1C1E]/90 backdrop-blur-md text-white pl-6 pr-14 py-4 rounded-full border border-white/10 focus:border-[#00FF41]/30 focus:ring-1 focus:ring-[#00FF41]/30 outline-none transition-all shadow-2xl placeholder-[#555] text-base disabled:opacity-50"
                 autoComplete="off"
             />
-            <button type="submit" disabled={!input.trim() || isTyping || energy <= 0} className="absolute right-2 top-2 w-10 h-10 bg-[#00FF41] rounded-full flex items-center justify-center text-black hover:scale-105 active:scale-95 transition-all disabled:opacity-0 disabled:scale-50">
+            <button type="submit" disabled={!input.trim() || isTyping || energy <= 0} className="absolute right-2 top-2 w-10 h-10 bg-[#00FF41] rounded-full flex items-center justify-center text-black hover:scale-105 active:scale-95 transition-all disabled:opacity-0 disabled:scale-50 shadow-[0_0_15px_rgba(0,255,65,0.4)]">
                 <Send className="w-5 h-5 ml-0.5" />
             </button>
         </form>
