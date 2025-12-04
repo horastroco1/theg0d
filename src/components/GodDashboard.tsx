@@ -11,17 +11,30 @@ import { createClient } from '@/lib/supabase';
 import { cryptoService } from '@/lib/crypto'; 
 import { audioService } from '@/services/audioService'; // IMPORT AUDIO
 
+import { locationService } from '@/services/locationService';
+
 interface GodDashboardProps { userData: any; }
 
-interface Message {
-  id: string;
-  text: string;
-  sender: 'god' | 'user';
-}
-
-type PaymentType = 'RECHARGE' | 'PATCH' | 'DEEP_SCAN';
-
-const generateId = () => typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).substr(2);
+// Translation dictionary for UI
+const UI_TEXT: Record<string, any> = {
+  en: {
+    init: "Initializing Neural Link...",
+    connected: "Connected. Subject:",
+    listening: "I am listening. What is your query?",
+    placeholder: "Encrypted Input...",
+    placeholderPremium: "DEEP SCAN ACTIVE. ASK A COMPLEX QUESTION.",
+    recharge: "RECHARGE REQUIRED"
+  },
+  es: {
+    init: "Iniciando Enlace Neuronal...",
+    connected: "Conectado. Sujeto:",
+    listening: "Te escucho. ¿Cuál es tu consulta?",
+    placeholder: "Entrada Cifrada...",
+    placeholderPremium: "ESCANEO PROFUNDO. PREGUNTA ALGO COMPLEJO.",
+    recharge: "RECARGA REQUERIDA"
+  },
+  // Add more languages as needed, fallback to EN
+};
 
 export default function GodDashboard({ userData }: GodDashboardProps) {
   const initializationRef = useRef(false);
@@ -30,15 +43,25 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [sanity, setSanity] = useState(100);
-  const [energy, setEnergy] = useState(5); // Daily Free Credits
+  const [energy, setEnergy] = useState(5); 
   const [showPaymentModal, setShowPaymentModal] = useState<{show: boolean, type: PaymentType | null}>({ show: false, type: null });
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [paymentResult, setPaymentResult] = useState<any>(null);
-  const [isVerifying, setIsVerifying] = useState(false); // New verification state
+  const [isVerifying, setIsVerifying] = useState(false); 
   const chatEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null); // Ref for auto-focus
+  const inputRef = useRef<HTMLInputElement>(null); 
   const [isTyping, setIsTyping] = useState(false);
-  const [isPremiumMode, setIsPremiumMode] = useState(false); // Track Premium State
+  const [isPremiumMode, setIsPremiumMode] = useState(false); 
+  
+  // Language State
+  const [uiText, setUiText] = useState(UI_TEXT['en']);
+  const [userLang, setUserLang] = useState('en');
+
+  useEffect(() => {
+      const lang = locationService.detectUserLanguage();
+      setUserLang(lang);
+      setUiText(UI_TEXT[lang] || UI_TEXT['en']);
+  }, []);
 
   // Use user data or default if missing
   const finalUserData = userData || {
@@ -80,13 +103,12 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
 
     const init = async () => {
       audioService.play('init'); // AUDIO: Init
-      setMessages([{ id: generateId(), text: "Initializing Neural Link...", sender: 'god' }]);
+      setMessages([{ id: generateId(), text: uiText.init, sender: 'god' }]);
       const supabase = createClient();
 
       try {
-        // --- CHART CACHING LOGIC ---
+        // ... (chart logic) ...
         let data;
-        
         if (userData.chart_data) {
             console.log("🔮 LOADING CHART FROM CACHE...");
             data = userData.chart_data;
@@ -100,6 +122,7 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
 
         // --- LOAD PREVIOUS CHAT (ENCRYPTED) ---
         if (finalUserData.identity_key) {
+            // ... (decryption logic) ...
             console.log("🔐 DECRYPTING ARCHIVES...");
             const { data: history, error } = await supabase
                 .from('messages')
@@ -122,9 +145,9 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
                 setTimeout(() => {
                     setMessages(prev => [
                         ...prev,
-                        { id: generateId(), text: `Connected. Subject: ${finalUserData.name}.`, sender: 'god' },
+                        { id: generateId(), text: `${uiText.connected} ${finalUserData.name}.`, sender: 'god' },
                         { id: generateId(), text: `Moon: ${data.moon_sign} | Dasha: ${data.current_dasha}`, sender: 'god' },
-                        { id: generateId(), text: "I am listening. What is your query?", sender: 'god' }
+                        { id: generateId(), text: uiText.listening, sender: 'god' }
                     ]);
                 }, 1200);
             }
@@ -137,7 +160,7 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
       }
     };
     init();
-  }, [finalUserData, userData.chart_data]);
+  }, [finalUserData, userData.chart_data, uiText]);
 
   // Scroll to bottom
   useEffect(() => {
@@ -218,7 +241,8 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
         {
             horoscopeData: horoscope,
             userLocation: finalUserData.locationName || "Unknown Grid",
-            tier: isPremiumMode ? 'premium' : 'standard'
+            tier: isPremiumMode ? 'premium' : 'standard',
+            language: userLang // Pass detected language
         }
       );
       
@@ -388,7 +412,7 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
                 type="text" 
                 value={input}
                 onChange={e => setInput(e.target.value)}
-                placeholder={isPremiumMode ? "DEEP SCAN ACTIVE. ASK A COMPLEX QUESTION." : (energy > 0 ? "Encrypted Input..." : "RECHARGE REQUIRED")}
+                placeholder={isPremiumMode ? uiText.placeholderPremium : (energy > 0 ? uiText.placeholder : uiText.recharge)}
                 disabled={energy <= 0}
                 className={`w-full bg-white/5 backdrop-blur-xl text-white pl-6 pr-14 py-4 rounded-full border ${isPremiumMode ? 'border-transparent' : 'border-white/10'} focus:border-[#00FF41]/30 focus:bg-white/10 outline-none transition-all shadow-[0_8px_32px_rgba(0,0,0,0.4)] placeholder-[#666] text-base disabled:opacity-50`}
                 autoComplete="off"

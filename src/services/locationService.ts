@@ -52,5 +52,16 @@ export const locationService = {
       console.error("Timezone Offset Error:", error);
       return "+00:00";
     }
+  },
+
+  detectUserLanguage: (): string => {
+    if (typeof navigator === 'undefined') return 'en';
+    
+    // Primary: Browser Language (e.g. 'es-ES' -> 'es')
+    const browserLang = navigator.language || (navigator as any).userLanguage;
+    if (browserLang) {
+        return browserLang.split('-')[0].toLowerCase();
+    }
+    return 'en';
   }
 };

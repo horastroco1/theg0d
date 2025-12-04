@@ -13,6 +13,10 @@ const SOUNDS = {
 export const audioService = {
     play: (key: 'init' | 'type' | 'message' | 'error') => {
         try {
+            // Check if mute preference is stored
+            const isMuted = typeof localStorage !== 'undefined' && localStorage.getItem('audio_muted') === 'true';
+            if (isMuted) return;
+
             SOUNDS[key].play();
             // Also trigger haptics if on mobile
             if (typeof navigator !== 'undefined' && navigator.vibrate) {
@@ -22,6 +26,15 @@ export const audioService = {
         } catch (e) {
             // Silent fail if audio context blocked
         }
+    },
+    
+    toggleMute: () => {
+        if (typeof localStorage !== 'undefined') {
+            const isMuted = localStorage.getItem('audio_muted') === 'true';
+            localStorage.setItem('audio_muted', (!isMuted).toString());
+            return !isMuted;
+        }
+        return false;
     }
 };
 

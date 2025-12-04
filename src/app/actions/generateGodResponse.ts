@@ -17,6 +17,7 @@ export interface GodContext {
   horoscopeData: any;
   userLocation: string;
   tier?: 'standard' | 'premium';
+  language?: string;
 }
 
 function getRandomFallback() {
@@ -133,6 +134,9 @@ export async function generateGodResponse(
            - **Geo-Context**: The user is in ${userLocation}. Adopt metaphors relevant to this region if applicable.
            - If Persian/Farsi: Use references to Rumi or Hafez where appropriate, but keep the Cyber-God tone.
            - If Indian: Use Vedic Sanskirt terms naturally (Karma, Dharma, Moksha).
+           - **CRITICAL: DETECTED USER LANGUAGE**: The user's detected language code is [${context.language || 'en'}].
+           - **REPLY IN THE USER'S LANGUAGE**: If they speak Spanish, reply in Spanish. If they speak English, reply in English.
+           - Maintain the cyber-god persona but adapt it culturally to [${context.language || 'en'}].
         5. **Format**: Keep responses punchy (under 60 words). No comforting lies.
         6. **Unknown Time Protocol**:
            - IF \`isMoonChart\` is TRUE (or time was unknown): DO NOT mention specific House numbers (1st, 7th, etc).
