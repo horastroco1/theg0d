@@ -1,77 +1,103 @@
 @import "tailwindcss";
 
+/* --- DESIGN SYSTEM: "CUPERTINO VOID" --- */
+/* Merging Apple's human interface guidelines with Cyber-Vedic Brutalism */
+
 :root {
-  --background: #050505;
-  --foreground: #00FF41;
-  --error: #FF3333;
-  --font-mono: 'Share Tech Mono', monospace;
-  --font-sans: 'Inter', sans-serif;
+  --bg-depth: #000000;
+  --bg-surface: #121212;
+  --accent-primary: #00FF41; /* Cyber Green */
+  --accent-dim: rgba(0, 255, 65, 0.1);
+  --text-primary: #F5F5F7;   /* Apple Off-White */
+  --text-secondary: #86868B; /* Apple Grey */
+  --glass-border: rgba(255, 255, 255, 0.08);
+  
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: "SF Mono", "Menlo", "Monaco", "Courier New", monospace;
+  
+  --ease-apple: cubic-bezier(0.32, 0.72, 0, 1); /* Smooth iOS easing */
 }
 
 @theme {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-error: var(--error);
-  --font-mono: var(--font-mono);
-  --font-sans: var(--font-sans);
+  --color-background: var(--bg-depth);
+  --color-surface: var(--bg-surface);
+  --color-accent: var(--accent-primary);
+  --color-text-main: var(--text-primary);
+  --color-text-dim: var(--text-secondary);
   
-  --animate-pulse-slow: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+  
+  --animate-float: float 6s ease-in-out infinite;
 }
 
 body {
-  background-color: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-mono);
-  overflow-x: hidden;
+  background-color: var(--bg-depth);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow: hidden; /* App-like feel */
 }
 
-/* --- Utilities --- */
-.glass-panel {
-  @apply bg-black/60 backdrop-blur-xl border border-white/10 shadow-2xl;
+/* RTL Support */
+[dir="rtl"] {
+  text-align: right;
 }
 
-.neon-border {
-  @apply border border-[#00FF41]/50 shadow-[0_0_10px_rgba(0,255,65,0.2)];
+/* --- UTILITIES --- */
+
+/* Apple-style Dark Glass */
+.ios-glass {
+  background: rgba(20, 20, 20, 0.65);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
 }
 
+/* High-End Input Field */
+.ios-input {
+  @apply w-full bg-[#1C1C1E] text-white px-4 py-4 rounded-xl border border-transparent focus:border-[#00FF41]/30 focus:bg-[#2C2C2E] transition-all outline-none text-[15px];
+  transition: all 0.3s var(--ease-apple);
+}
+
+.ios-input::placeholder {
+  color: var(--text-secondary);
+}
+
+/* Primary Action Button */
+.ios-btn-primary {
+  @apply w-full bg-white text-black font-semibold py-4 rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-transform;
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+}
+
+.ios-btn-accent {
+  @apply w-full bg-[#00FF41] text-black font-bold py-4 rounded-xl tracking-widest hover:shadow-[0_0_30px_rgba(0,255,65,0.4)] active:scale-[0.98] transition-all;
+}
+
+/* CRT Overlay (Subtler for this style) */
 .scanlines {
   background: linear-gradient(
     to bottom,
     rgba(255,255,255,0),
     rgba(255,255,255,0) 50%,
-    rgba(0,0,0,0.2) 50%,
-    rgba(0,0,0,0.2)
+    rgba(0,0,0,0.15) 50%,
+    rgba(0,0,0,0.15)
   );
-  background-size: 100% 4px;
+  background-size: 100% 3px;
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   pointer-events: none;
-  z-index: 50;
-  opacity: 0.6;
+  z-index: 999;
+  opacity: 0.3;
 }
 
-.scrollbar-hide::-webkit-scrollbar {
-    display: none;
-}
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 
-.scrollbar-hide {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-}
-
-@keyframes glitch {
-  0% { transform: translate(0) }
-  20% { transform: translate(-2px, 2px) }
-  40% { transform: translate(-2px, -2px) }
-  60% { transform: translate(2px, 2px) }
-  80% { transform: translate(2px, -2px) }
-  100% { transform: translate(0) }
-}
-
-.glitch-text:hover {
-  animation: glitch 0.3s cubic-bezier(.25, .46, .45, .94) both infinite;
-  color: var(--error);
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
 }
