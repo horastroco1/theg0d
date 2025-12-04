@@ -58,6 +58,8 @@ export default function TermsPage() {
           <p className="text-xs text-[#86868B]">
             By entering the simulation, you accept the inherent risks of knowing your fate.
             <br/>
+            <span className="text-[#00FF41]">theg0d</span> is an AI-powered astrological simulation for entertainment and spiritual exploration purposes only. Not financial or medical advice.
+            <br/>
             <span className="text-[#00FF41]">theg0d</span> accepts no liability for psychological impact.
           </p>
         </motion.div>

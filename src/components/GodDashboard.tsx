@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Activity, Coins, X, Sparkles, Wifi, Battery, Zap, Lock } from 'lucide-react';
+import { Send, Activity, Coins, X, Sparkles, Wifi, Battery, Zap, Lock, Copy } from 'lucide-react';
 import { astrologyService, HoroscopeData } from '@/services/astrologyService';
 import { geminiService } from '@/services/geminiService';
 import { security } from '@/lib/security';
@@ -32,6 +32,7 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
   const [energy, setEnergy] = useState(5); // Daily Free Credits
   const [showPaymentModal, setShowPaymentModal] = useState<{show: boolean, type: PaymentType | null}>({ show: false, type: null });
   const [paymentLoading, setPaymentLoading] = useState(false);
+  const [paymentResult, setPaymentResult] = useState<any>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null); // Ref for auto-focus
   const [isTyping, setIsTyping] = useState(false);
@@ -211,6 +212,7 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
 
    const handlePayment = async () => {
       setPaymentLoading(true);
+      setPaymentResult(null);
       const type = showPaymentModal.type;
       let amount = 5;
       let desc = "Energy Recharge";
@@ -221,14 +223,7 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
       try {
           const result: any = await paymentService.createPayment({ amount, description: desc });
           setPaymentLoading(false);
-          
-          if (result.pay_address) {
-             alert(`PAYMENT GENERATED:\nSend ${result.amount} ${result.pay_currency.toUpperCase()} to:\n\n${result.pay_address}\n\n(Check console for full details)`);
-             setTimeout(() => {
-                setShowPaymentModal({ show: false, type: null });
-                 if (type === 'RECHARGE') setEnergy(e => e + 20);
-             }, 5000);
-          }
+          setPaymentResult(result);
       } catch (e) {
           setPaymentLoading(false);
           alert("Payment Gateway Error. Check Console.");
@@ -349,6 +344,32 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
                 <div><h3 className="text-2xl font-bold text-white mb-2">Recharge Signal</h3><p className="text-[#86868B] text-sm">Restore connection bandwidth.</p></div>
                 {paymentLoading ? (
                   <div className="py-8 flex flex-col items-center gap-4"><div className="w-16 h-16 relative"><div className="absolute inset-0 border-4 border-[#00FF41]/20 rounded-full"></div><div className="absolute inset-0 border-4 border-[#00FF41] rounded-full border-t-transparent animate-spin"></div></div><div className="text-[#00FF41] animate-pulse text-sm font-mono text-center">GENERATING ADDRESS...</div></div>
+                ) : paymentResult ? (
+                    <div className="space-y-6 animate-in fade-in zoom-in duration-300">
+                         <div className="bg-white p-2 rounded-xl w-fit mx-auto">
+                             <img src={paymentResult.qr_code_url} alt="QR Code" className="w-48 h-48 object-contain" />
+                         </div>
+                         <div className="space-y-2">
+                              <p className="text-xs text-[#86868B] uppercase tracking-widest">Send {paymentResult.amount} {paymentResult.pay_currency.toUpperCase()}</p>
+                              <div 
+                                 onClick={() => navigator.clipboard.writeText(paymentResult.pay_address)}
+                                 className="bg-black/50 p-4 rounded-xl border border-white/5 font-mono text-xs text-[#00FF41] break-all select-all cursor-pointer hover:border-[#00FF41]/50 transition-all flex items-center justify-between gap-2 group"
+                              >
+                                 <span>{paymentResult.pay_address}</span>
+                                 <Copy className="w-4 h-4 opacity-50 group-hover:opacity-100" />
+                              </div>
+                         </div>
+                         <button 
+                             onClick={() => {
+                                 setShowPaymentModal({ show: false, type: null });
+                                 if (showPaymentModal.type === 'RECHARGE') setEnergy(e => e + 20);
+                                 setPaymentResult(null);
+                             }} 
+                             className="w-full bg-[#00FF41] text-black font-bold py-4 rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                         >
+                             I HAVE SENT IT
+                         </button>
+                    </div>
                 ) : (
                     <div className="space-y-4"><div className="bg-black/50 p-4 rounded-xl border border-white/5 font-mono text-xs text-[#86868B] break-all select-all cursor-pointer hover:border-[#00FF41]/30 transition-colors">T9yD14Nj9j7xAB4dbGeiX9h8unkkhxnXVpe</div><button onClick={handlePayment} className="w-full bg-[#00FF41] text-black font-bold py-4 rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2"><Sparkles className="w-4 h-4" />CONFIRM PAYMENT</button></div>
                 )}

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import axios from 'axios';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { Loader2, ArrowRight, MapPin, Calendar, User, Globe, Database, X, Key, Copy } from 'lucide-react';
 import { locationService, LocationData } from '@/services/locationService';
@@ -56,13 +57,40 @@ export default function TheGate({ onSubmit }: TheGateProps) {
   const searchTimeout = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    const userLang = navigator.language || navigator.languages[0];
-    if (userLang) {
-        const code = userLang.split('-')[0];
-        setDetectedLang(code);
-        if (code === 'fa') document.dir = 'rtl';
-        else document.dir = 'ltr';
-    }
+    const detectUserContext = async () => {
+        try {
+            // 1. Try IP Geolocation first
+            const response = await axios.get('https://ipapi.co/json/');
+            const country = response.data.country_code; 
+            
+            if (country === 'IR') {
+                setDetectedLang('fa');
+                document.dir = 'rtl';
+            } else if (['ES', 'MX', 'AR', 'CO'].includes(country)) {
+                setDetectedLang('es');
+                document.dir = 'ltr';
+            } else {
+                 // Fallback to browser
+                 const userLang = navigator.language || navigator.languages[0];
+                 if (userLang) {
+                    const code = userLang.split('-')[0];
+                    setDetectedLang(code);
+                    if (code === 'fa') document.dir = 'rtl';
+                    else document.dir = 'ltr';
+                 }
+            }
+        } catch (e) {
+            console.warn("Geo-IP failed, using browser lang");
+            const userLang = navigator.language || navigator.languages[0];
+            if (userLang) {
+                const code = userLang.split('-')[0];
+                setDetectedLang(code);
+                if (code === 'fa') document.dir = 'rtl';
+                else document.dir = 'ltr';
+            }
+        }
+    };
+    detectUserContext();
   }, []);
 
   useEffect(() => {

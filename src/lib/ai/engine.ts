@@ -2,7 +2,7 @@ import axios from 'axios';
 import { GOD_SYSTEM_PROMPT, FALLBACK_MESSAGES, GOD_PROTOCOL } from '@/lib/godRules';
 
 const GEMINI_API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
-const MODEL_NAME = 'gemini-2.5-flash'; 
+const MODEL_NAME = 'gemini-1.5-pro'; 
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${GEMINI_API_KEY}`;
 
 interface ChatMessage {
