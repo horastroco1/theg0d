@@ -5,8 +5,19 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Terminal, Search, Loader2, Lock, AlertTriangle } from 'lucide-react';
 import { locationService, LocationData } from '@/services/locationService';
 
+export interface FormData {
+  name: string;
+  date: string;
+  time: string;
+  timeUnknown: boolean;
+  latitude: number;
+  longitude: number;
+  timezone: string;
+  locationName: string;
+}
+
 interface TheGateProps {
-  onSubmit: (data: any) => Promise<void>;
+  onSubmit: (data: FormData) => Promise<void>;
 }
 
 export default function TheGate({ onSubmit }: TheGateProps) {
@@ -72,23 +83,38 @@ export default function TheGate({ onSubmit }: TheGateProps) {
     }
   };
 
+  const inputVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: (i: number) => ({
+      opacity: 1,
+      y: 0,
+      transition: { delay: i * 0.1, duration: 0.5, ease: "easeOut" }
+    })
+  };
+
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 relative z-10">
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 relative z-10 overflow-hidden">
       <motion.div 
-        initial={{ opacity: 0, scale: 0.98 }}
+        initial={{ opacity: 0, scale: 0.95 }}
         animate={{ 
           opacity: 1, 
           scale: 1,
           x: error ? [0, -10, 10, -10, 10, 0] : 0 
         }}
-        transition={{ duration: error ? 0.4 : 1 }}
-        className="w-full max-w-lg border border-[#00FF41]/30 bg-black/60 backdrop-blur-md p-8 shadow-[0_0_60px_rgba(0,255,65,0.05)] relative overflow-hidden rounded-sm"
+        transition={{ duration: error ? 0.4 : 0.8, ease: "circOut" }}
+        className="w-full max-w-xl glass-panel p-8 md:p-12 rounded-xl relative z-20 neon-border"
       >
         {/* Header */}
-        <div className="flex items-center gap-3 mb-8 border-b border-[#00FF41]/30 pb-4">
-          <Terminal className="w-6 h-6 text-[#00FF41]" />
-          <h1 className="text-2xl font-bold tracking-[0.2em] text-[#00FF41] font-mono">THE_GATE</h1>
-        </div>
+        <motion.div 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="flex flex-col items-center mb-12"
+        >
+            <Terminal className="w-8 h-8 text-[#00FF41] mb-4 animate-pulse" />
+            <h1 className="text-6xl font-bold tracking-tighter text-[#00FF41] font-mono glitch-text select-none">theg0d</h1>
+            <p className="text-xs uppercase tracking-[0.4em] text-[#00FF41]/60 mt-2">Cyber-Vedic Astrology Protocol</p>
+        </motion.div>
 
         {/* Error Message */}
         <AnimatePresence>
@@ -97,7 +123,7 @@ export default function TheGate({ onSubmit }: TheGateProps) {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              className="bg-red-500/10 border border-red-500/50 text-red-500 p-3 mb-6 text-xs font-mono flex items-center gap-2"
+              className="bg-red-500/10 border border-red-500/50 text-red-500 p-3 mb-6 text-xs font-mono flex items-center gap-2 rounded"
             >
               <AlertTriangle className="w-4 h-4" />
               {error}
@@ -108,34 +134,34 @@ export default function TheGate({ onSubmit }: TheGateProps) {
         <form onSubmit={handleSubmit} className="space-y-8 font-mono">
           
           {/* Name */}
-          <div className="group">
-            <label className="text-[10px] uppercase tracking-[0.2em] text-[#00FF41]/50 mb-1 block">Subject ID</label>
+          <motion.div custom={1} variants={inputVariants} initial="hidden" animate="visible" className="group">
+            <label className="text-[10px] uppercase tracking-[0.2em] text-[#00FF41]/50 mb-1 block group-hover:text-[#00FF41] transition-colors">Subject ID</label>
             <input 
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full bg-transparent border-b border-[#00FF41]/30 py-2 text-[#00FF41] text-lg focus:outline-none focus:border-[#00FF41] transition-all placeholder-[#00FF41]/20"
+              className="w-full bg-transparent border-b border-[#00FF41]/30 py-2 text-[#00FF41] text-xl focus:outline-none focus:border-[#00FF41] transition-all placeholder-[#00FF41]/20"
               placeholder="ENTER NAME"
               disabled={isLoading}
             />
-          </div>
+          </motion.div>
 
           {/* Date & Time */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="group">
-              <label className="text-[10px] uppercase tracking-[0.2em] text-[#00FF41]/50 mb-1 block">Inception Date</label>
+            <motion.div custom={2} variants={inputVariants} initial="hidden" animate="visible" className="group">
+              <label className="text-[10px] uppercase tracking-[0.2em] text-[#00FF41]/50 mb-1 block group-hover:text-[#00FF41] transition-colors">Inception Date</label>
               <input 
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="w-full bg-transparent border-b border-[#00FF41]/30 py-2 text-[#00FF41] focus:outline-none focus:border-[#00FF41] [color-scheme:dark]"
+                className="w-full bg-transparent border-b border-[#00FF41]/30 py-2 text-[#00FF41] focus:outline-none focus:border-[#00FF41] [color-scheme:dark] text-lg"
                 disabled={isLoading}
               />
-            </div>
+            </motion.div>
 
-            <div className="group">
+            <motion.div custom={3} variants={inputVariants} initial="hidden" animate="visible" className="group">
               <div className="flex justify-between items-center mb-1">
-                <label className="text-[10px] uppercase tracking-[0.2em] text-[#00FF41]/50">Time</label>
+                <label className="text-[10px] uppercase tracking-[0.2em] text-[#00FF41]/50 group-hover:text-[#00FF41] transition-colors">Time</label>
                 <div className="flex items-center gap-2">
                   <input 
                     type="checkbox" 
@@ -152,14 +178,14 @@ export default function TheGate({ onSubmit }: TheGateProps) {
                 value={time}
                 disabled={timeUnknown || isLoading}
                 onChange={(e) => setTime(e.target.value)}
-                className={`w-full bg-transparent border-b border-[#00FF41]/30 py-2 text-[#00FF41] focus:outline-none focus:border-[#00FF41] [color-scheme:dark] ${timeUnknown ? 'opacity-30' : ''}`}
+                className={`w-full bg-transparent border-b border-[#00FF41]/30 py-2 text-[#00FF41] focus:outline-none focus:border-[#00FF41] [color-scheme:dark] text-lg ${timeUnknown ? 'opacity-30' : ''}`}
               />
-            </div>
+            </motion.div>
           </div>
 
           {/* Location */}
-          <div className="group relative">
-            <label className="text-[10px] uppercase tracking-[0.2em] text-[#00FF41]/50 mb-1 block">Coordinates</label>
+          <motion.div custom={4} variants={inputVariants} initial="hidden" animate="visible" className="group relative">
+            <label className="text-[10px] uppercase tracking-[0.2em] text-[#00FF41]/50 mb-1 block group-hover:text-[#00FF41] transition-colors">Coordinates</label>
             <div className="relative">
               <input 
                 type="text"
@@ -168,12 +194,12 @@ export default function TheGate({ onSubmit }: TheGateProps) {
                   setCityQuery(e.target.value);
                   setSelectedLocation(null);
                 }}
-                className="w-full bg-transparent border-b border-[#00FF41]/30 py-2 pl-8 text-[#00FF41] focus:outline-none focus:border-[#00FF41] placeholder-[#00FF41]/20"
+                className="w-full bg-transparent border-b border-[#00FF41]/30 py-2 pl-8 text-[#00FF41] text-lg focus:outline-none focus:border-[#00FF41] placeholder-[#00FF41]/20 transition-all"
                 placeholder="SEARCH LOCATION"
                 disabled={isLoading}
               />
-              <Search className="absolute left-0 top-2.5 w-4 h-4 text-[#00FF41]/40" />
-              {isSearching && <Loader2 className="absolute right-2 top-2.5 w-4 h-4 animate-spin text-[#00FF41]" />}
+              <Search className="absolute left-0 top-3.5 w-4 h-4 text-[#00FF41]/40" />
+              {isSearching && <Loader2 className="absolute right-2 top-3.5 w-4 h-4 animate-spin text-[#00FF41]" />}
             </div>
 
             {/* Autocomplete Dropdown */}
@@ -183,7 +209,7 @@ export default function TheGate({ onSubmit }: TheGateProps) {
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
-                  className="absolute top-full left-0 w-full bg-black border border-[#00FF41]/30 mt-2 max-h-48 overflow-y-auto z-50 shadow-2xl"
+                  className="absolute top-full left-0 w-full bg-black/90 backdrop-blur-md border border-[#00FF41]/30 mt-2 max-h-48 overflow-y-auto z-50 shadow-2xl rounded"
                 >
                   {cityResults.map((loc, i) => (
                     <li 
@@ -193,7 +219,7 @@ export default function TheGate({ onSubmit }: TheGateProps) {
                         setCityQuery(`${loc.name}, ${loc.country || ''}`);
                         setCityResults([]);
                       }}
-                      className="p-3 hover:bg-[#00FF41]/10 cursor-pointer border-b border-[#00FF41]/10 text-sm flex justify-between transition-colors text-[#00FF41]"
+                      className="p-3 hover:bg-[#00FF41]/20 cursor-pointer border-b border-[#00FF41]/10 text-sm flex justify-between transition-colors text-[#00FF41]"
                     >
                       <span>{loc.name}</span>
                       <span className="text-xs opacity-50">{loc.country}</span>
@@ -202,21 +228,25 @@ export default function TheGate({ onSubmit }: TheGateProps) {
                 </motion.ul>
               )}
             </AnimatePresence>
-          </div>
+          </motion.div>
 
           {/* Submit Button */}
           <motion.button
-            whileHover={{ scale: 1.02 }}
+            custom={5} variants={inputVariants} initial="hidden" animate="visible"
+            whileHover={{ scale: 1.02, boxShadow: "0 0 20px rgba(0,255,65,0.3)" }}
             whileTap={{ scale: 0.98 }}
             type="submit"
             disabled={isLoading}
-            className="w-full bg-[#00FF41]/5 border border-[#00FF41] text-[#00FF41] p-4 mt-8 uppercase tracking-[0.25em] font-bold hover:bg-[#00FF41] hover:text-black transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed group relative overflow-hidden"
+            className="w-full bg-[#00FF41] text-black p-4 mt-8 uppercase tracking-[0.25em] font-bold hover:bg-[#00CC33] transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed group relative overflow-hidden rounded"
           >
             {isLoading ? (
-              <span className="animate-pulse flex items-center gap-2 text-xs">
+              <motion.span 
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                className="flex items-center gap-2 text-xs"
+              >
                 <Loader2 className="w-4 h-4 animate-spin" />
                 ESTABLISHING UPLINK...
-              </span>
+              </motion.span>
             ) : (
               <>
                 <Lock className="w-4 h-4 group-hover:unlock transition-transform" />
