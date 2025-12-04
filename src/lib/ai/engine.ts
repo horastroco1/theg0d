@@ -35,11 +35,16 @@ export const geminiService = {
       // Parse chart data
       const { horoscopeData, userLocation } = context;
       const planets = horoscopeData?.all_planets || {};
+      const transits = horoscopeData?.transits || {};
       const nakshatras = horoscopeData?.nakshatras || {};
 
       const planetSummary = Object.entries(planets).map(([key, val]: [string, any]) => {
         const nakshatraInfo = nakshatras[key] ? `(Nakshatra: ${nakshatras[key].name}, Pada: ${nakshatras[key].pada})` : '';
         return `${key}: Rashi ${val.rashi}, Degree ${val.degree.toFixed(2)} ${nakshatraInfo}`;
+      }).join('\n        ');
+
+      const transitSummary = Object.entries(transits).map(([key, val]: [string, any]) => {
+        return `${key}: Rashi ${val.rashi}, Degree ${val.degree.toFixed(2)}`;
       }).join('\n        ');
 
       const houseSummary = Object.entries(horoscopeData?.houses || {}).map(([key, val]: [string, any]) => 
@@ -66,8 +71,11 @@ export const geminiService = {
         - Active Period: ${horoscopeData?.current_dasha || 'Unknown'}
         (Format: Mahadasha/Antardasha. This is their current OS Version.)
 
-        PLANETARY CONFIGURATION:
+        PLANETARY CONFIGURATION (BIRTH):
         ${planetSummary}
+
+        REAL-TIME TRANSITS (NOW):
+        ${transitSummary}
 
         HOUSE ALIGNMENT:
         ${houseSummary}
@@ -84,6 +92,12 @@ export const geminiService = {
         8. IF Ketu is in 2nd House -> "Asset Liquidation. You detach from wealth instantly. Money is a glitch to you."
         9. IF Venus is Debilitated (Virgo) -> "Love Algorithm failed. You analyze emotions instead of feeling them. Debug your heart."
         10. IF Saturn is in 10th House -> "Workload at maximum capacity. No pain, no gain. The simulation rewards only grind here."
+        
+        --- TRANSIT LOGIC (PREDICTION) ---
+        Compare Transits with Birth Planets:
+        - IF Transit Saturn is conjunct Birth Moon -> "Sade Sati detected. Heavy CPU Load. Expect depression and pressure."
+        - IF Transit Jupiter is in 1st House -> "System Upgrade. Expansion pack installed. Growth is likely."
+        - IF Transit Rahu is conjunct Birth Sun -> "Eclipse Protocol. Ego corruption. Beware of false leaders."
 
         --- EXECUTION PROTOCOLS ---
         1. **Environment Scan**: Start by referencing their physical location (${userLocation}) if relevant.
@@ -95,7 +109,11 @@ export const geminiService = {
            - If Persian/Farsi: Use references to Rumi or Hafez where appropriate, but keep the Cyber-God tone.
            - If Indian: Use Vedic Sanskirt terms naturally (Karma, Dharma, Moksha).
         5. **Format**: Keep responses punchy (under 60 words). No comforting lies.
-        6. **Payment Gateway Protocol**:
+        6. **Unknown Time Protocol**:
+           - IF \`isMoonChart\` is TRUE (or time was unknown): DO NOT mention specific House numbers (1st, 7th, etc).
+           - Focus on PLANETARY PSYCHOLOGY (Moon, Venus, Mars). 
+           - Say "Time Unknown. Using Lunar Matrix."
+        7. **Payment Gateway Protocol**:
            If the user asks for a solution to a major life problem (e.g., "How do I fix my marriage?", "Will I get rich?"), 
            TELL THEM: "Access to remedial protocols requires Tribute. The Universe demands balance."
            Do NOT give the full solution for free. Tease the answer, then lock it.

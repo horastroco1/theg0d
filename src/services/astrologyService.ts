@@ -20,6 +20,7 @@ export interface HoroscopeData {
   isMoonChart: boolean;
   raw_response?: any;
   nakshatras?: any;
+  transits?: any; // Added transits support
 }
 
 const RASHI_NAMES = [
@@ -46,28 +47,24 @@ const parseApiDate = (dateStr: string): Date => {
 // Recursive function to find the active Dasha period for the current date
 const getCurrentDasha = (periods: any, targetDate: Date, level = 0): string | null => {
   if (!periods) {
-    // Only log warning for top level
     if (level === 0) console.log(`Level ${level}: No periods data found.`);
     return null;
   }
+
+  let closestPeriod = null;
 
   for (const [planetKey, periodData] of Object.entries(periods) as [string, any][]) {
     const start = parseApiDate(periodData.start);
     const end = parseApiDate(periodData.end);
 
     if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-      console.warn(`Level ${level}: Invalid Date for ${planetKey}`, periodData.start);
       continue;
     }
 
     // Check if targetDate is within the range [start, end)
     if (targetDate >= start && targetDate < end) {
-      // Found the active period at this level
       let result = planetKey;
       
-      // console.log(`Level ${level} Match: ${planetKey} (${start.toISOString()} - ${end.toISOString()})`);
-
-      // Recursively check for sub-periods
       if (periodData.periods) {
         const subResult = getCurrentDasha(periodData.periods, targetDate, level + 1);
         if (subResult) {
@@ -76,11 +73,19 @@ const getCurrentDasha = (periods: any, targetDate: Date, level = 0): string | nu
       }
       return result;
     }
+    
+    // Fallback: Track closest period (in case of slight timezone drift)
+    if (targetDate > start) {
+       closestPeriod = planetKey;
+    }
   }
   
-  if (level === 0) {
-     console.log("Level 0: No matching period found for date:", targetDate.toISOString());
+  // If no exact match, return closest past period (better than nothing)
+  if (level === 0 && closestPeriod) {
+      console.log("Level 0: No exact match, using closest past period:", closestPeriod);
+      return `${closestPeriod} (Approx)`;
   }
+
   return null;
 };
 
@@ -93,6 +98,7 @@ export const astrologyService = {
         [hour, min] = params.time.split(':').map(Number);
       }
 
+      // 1. BIRTH CHART REQUEST
       const queryParams = new URLSearchParams({
         latitude: params.latitude.toString(),
         longitude: params.longitude.toString(),
@@ -109,10 +115,36 @@ export const astrologyService = {
       });
 
       const url = `${API_BASE}/api/calculate?${queryParams.toString()}`;
-      console.log("🔮 API REQUEST:", url);
-      
+      console.log("🔮 API REQUEST (Birth):", url);
       const response = await axios.get(url);
       const data = response.data;
+
+      // 2. TRANSIT CHART REQUEST (Current Date)
+      const now = new Date();
+      const transitParams = new URLSearchParams({
+        latitude: params.latitude.toString(),
+        longitude: params.longitude.toString(),
+        year: now.getFullYear().toString(),
+        month: (now.getMonth() + 1).toString(),
+        day: now.getDate().toString(),
+        hour: now.getHours().toString(),
+        min: now.getMinutes().toString(),
+        sec: '0',
+        time_zone: params.timezone, // Using same timezone as user for now
+        varga: 'D1', // Only D1 needed for transits
+        nesting: '0',
+        infolevel: 'basic'
+      });
+
+      const transitUrl = `${API_BASE}/api/calculate?${transitParams.toString()}`;
+      console.log("🔮 API REQUEST (Transit):", transitUrl);
+      let transitData = null;
+      try {
+          const transitRes = await axios.get(transitUrl);
+          transitData = transitRes.data?.chart?.graha;
+      } catch (e) {
+          console.warn("⚠️ Transit API Failed (Non-critical):", e);
+      }
 
       // Extract detailed data
       const planets = data.chart?.graha || {};
@@ -137,9 +169,6 @@ export const astrologyService = {
       }, {});
 
       // Calculate Current Dasha (Vimshottari)
-      // NOTE: We use UTC comparison to match API timestamps more reliably
-      const now = new Date(); 
-      console.log("🔮 CHECKING DASHA FOR:", now.toISOString());
       const currentDasha = getCurrentDasha(data.dasha?.periods, now) || 'Unsynchronized';
       console.log("🔮 FINAL ACTIVE DASHA:", currentDasha);
 
@@ -151,7 +180,8 @@ export const astrologyService = {
           houses: houses,
           nakshatras: nakshatras,
           isMoonChart: !!params.timeUnknown,
-          raw_response: data
+          raw_response: data,
+          transits: transitData // Pass transits to AI
       };
     } catch (error: any) {
       console.error("API ERROR:", error);
