@@ -7,6 +7,7 @@ import { Loader2, ArrowRight, MapPin, Calendar, User, Globe, Database, X, Key, C
 import { locationService, LocationData } from '@/services/locationService';
 import { supabase } from '@/lib/supabase';
 import { astrologyService } from '@/services/astrologyService';
+import BootSequence from './BootSequence'; // NEW IMPORT
 
 export interface FormData {
   name: string;
@@ -27,6 +28,7 @@ interface TheGateProps {
 }
 
 export default function TheGate({ onSubmit }: TheGateProps) {
+  const [bootComplete, setBootComplete] = useState(false);
   const [step, setStep] = useState(0);
   const [mode, setMode] = useState<'NEW' | 'LOGIN'>('NEW');
   
@@ -342,6 +344,9 @@ export default function TheGate({ onSubmit }: TheGateProps) {
   };
 
   return (
+    <>
+    {!bootComplete && <BootSequence onComplete={() => setBootComplete(true)} />}
+    
     <div className={`min-h-screen flex flex-col items-center justify-center relative p-6 bg-black text-[#F5F5F7] overflow-hidden font-sans ${isRTL ? 'rtl' : 'ltr'}`} dir={isRTL ? 'rtl' : 'ltr'}>
       
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
@@ -367,7 +372,7 @@ export default function TheGate({ onSubmit }: TheGateProps) {
       </div>
 
       <AnimatePresence mode='wait'>
-        {step === 0 ? (
+        {bootComplete && step === 0 ? (
           <motion.div 
             key="intro"
             variants={containerVariants}
@@ -679,5 +684,6 @@ export default function TheGate({ onSubmit }: TheGateProps) {
         )}
       </AnimatePresence>
     </div>
+    </>
   );
 }
