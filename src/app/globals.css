@@ -76,6 +76,18 @@ body {
   @apply w-full bg-white/5 backdrop-blur-xl text-white px-4 py-4 rounded-xl border border-white/10 focus:border-[#00FF41]/50 focus:bg-white/10 transition-all outline-none text-[16px]; 
   transition: all 0.3s var(--ease-apple);
   box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+  caret-color: #00FF41; /* Green Cursor */
+}
+
+/* Fix Browser Autofill White Background Glitch */
+.ios-input:-webkit-autofill,
+.ios-input:-webkit-autofill:hover, 
+.ios-input:-webkit-autofill:focus, 
+.ios-input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 30px #1C1C1E inset !important;
+    -webkit-text-fill-color: white !important;
+    caret-color: #00FF41;
+    transition: background-color 5000s ease-in-out 0s;
 }
 
 .ios-input::placeholder {
