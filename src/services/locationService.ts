@@ -12,13 +12,13 @@ export interface LocationData {
 }
 
 export const locationService = {
-  searchCity: async (city: string): Promise<LocationData[]> => {
-    if (!city || city.length < 3) return [];
+  searchCity: async (query: string): Promise<LocationData[]> => {
+    if (!query || query.length < 3) return [];
 
     try {
       const response = await axios.get(GEO_API_URL, {
         params: {
-          name: city,
+          name: query,
           count: 5,
           language: 'en',
           format: 'json'
@@ -34,7 +34,6 @@ export const locationService = {
           country: item.country
         }));
       }
-      
       return [];
     } catch (error) {
       console.error("Location API Error:", error);
@@ -42,15 +41,13 @@ export const locationService = {
     }
   },
 
-  // Calculate exact timezone offset (e.g., "+05:30") for a specific date/location
-  getTimezoneOffset: (dateStr: string, timeStr: string, timeZoneName: string): string => {
+  getTimezoneOffset: (dateStr: string, timeStr: string, timezoneId: string): string => {
     try {
-      // Combine date and time. If time is missing, default to noon for offset calculation (though DST usually changes at 2am)
+      if (!dateStr) return "+00:00";
       const dateTimeStr = `${dateStr}T${timeStr || '12:00'}:00`;
       const date = new Date(dateTimeStr);
-      
-      // 'xxx' gives offset like +05:30 or -04:00
-      return format(date, 'xxx', { timeZone: timeZoneName });
+      if (isNaN(date.getTime())) return "+00:00";
+      return format(date, 'xxx', { timeZone: timezoneId });
     } catch (error) {
       console.error("Timezone Offset Error:", error);
       return "+00:00";

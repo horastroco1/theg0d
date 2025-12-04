@@ -11,56 +11,44 @@ export interface AstrologyParams {
   timeUnknown?: boolean;
 }
 
-export interface HoroscopeData {
-  ascendant: string;
-  ascendant_lord: string;
-  moon_sign: string;
-  moon_nakshatra: string;
-  current_dasha: string;
-  dasha_end_date: string;
-  planets: any[];
-  isMoonChart: boolean;
-  raw_response?: any;
-}
-
 export const astrologyService = {
-  calculateHoroscope: async (params: AstrologyParams): Promise<HoroscopeData> => {
-    let { date, time, latitude, longitude, timezone, timeUnknown } = params;
-
-    // Handle Unknown Time
-    if (timeUnknown) {
-      time = "12:00";
-    }
-
+  calculateHoroscope: async (params: AstrologyParams) => {
     try {
-      // Note: The prompt asks to handle `timeUnknown` -> default 12:00 and flag as Moon Chart.
-      // We pass the modified time to the API.
-      const response = await axios.post(API_URL, {
-        latitude,
-        longitude,
-        date,
-        time,
-        timezone, // The API likely expects "timezone" or "time_zone". Prompt says "timezone".
+      // Parse Date (CRITICAL FIX: Split the string into individual params)
+      const [year, month, day] = params.date.split('-').map(Number);
+      
+      let hour = 12;
+      let min = 0;
+      
+      if (!params.timeUnknown && params.time) {
+        [hour, min] = params.time.split(':').map(Number);
+      }
+
+      // Use axios 'params' object for clean GET query construction
+      const queryParams = new URLSearchParams({
+        latitude: params.latitude.toString(),
+        longitude: params.longitude.toString(),
+        year: year.toString(),
+        month: month.toString(),
+        day: day.toString(),
+        hour: hour.toString(),
+        min: min.toString(),
+        sec: '0',
+        time_zone: params.timezone, 
+        varga: 'D1,D9',
+        nesting: '2',
+        infolevel: 'basic'
       });
 
-      const data = response.data;
-
-      return {
-        ascendant: data.ascendant || "Unknown",
-        ascendant_lord: data.ascendant_lord || "Unknown",
-        moon_sign: data.moon_sign || "Unknown",
-        moon_nakshatra: data.moon_nakshatra || "Unknown",
-        current_dasha: data.current_dasha || "Unknown",
-        dasha_end_date: data.dasha_end_date || "Unknown",
-        planets: data.planets || [],
-        isMoonChart: !!timeUnknown,
-        raw_response: data
-      };
+      console.log("🔮 CALLING API WITH PARAMS:", queryParams.toString());
+      
+      // AXIOS will correctly serialize this object into the URL query string
+      const response = await axios.get(`${API_URL}?${queryParams.toString()}`);
+      return response.data;
 
     } catch (error) {
-      console.error("Astrology API Error:", error);
-      // Fallback / Error handling
-      throw error;
+      console.error("API ERROR:", error);
+      throw new Error("CONNECTION SEVERED. FATE CALCULATION FAILED.");
     }
   }
 };
