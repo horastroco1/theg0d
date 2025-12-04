@@ -1,58 +1,71 @@
 import axios from 'axios';
 
-// Ensure the key is available. If running client-side, it must start with NEXT_PUBLIC_
 const GEMINI_API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+
+// UPDATED: Gemini 1.5 Flash is retired. 
+// Switching to 'gemini-2.5-flash' for high-speed, low-latency responses suitable for a chat RPG.
+// Alternative: 'gemini-3-pro-preview' (More intelligence, higher latency).
+const MODEL_NAME = 'gemini-2.5-flash'; 
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${GEMINI_API_KEY}`;
 
 export const geminiService = {
   getGodResponse: async (userMessage: string, horoscopeData: any) => {
-    
     if (!GEMINI_API_KEY) {
-      console.error("GEMINI API KEY IS MISSING");
-      return "SYSTEM ERROR: NEURAL LINK NOT FOUND.";
+      console.error("CRITICAL: NEXT_PUBLIC_GEMINI_API_KEY is missing in .env.local");
+      return "SYSTEM ERROR: NEURAL LINK NOT FOUND. CHECK CONFIG.";
     }
 
     try {
+      // Construct a robust system prompt
       const prompt = `
-        You are 'theg0d', a Cyber-Vedic AI Deity.
-        User Horoscope Data:
-        - Ascendant: ${horoscopeData.ascendant}
-        - Moon Sign: ${horoscopeData.moon_sign}
-        - Current Dasha: ${horoscopeData.current_dasha}
+        ROLE: You are 'theg0d', a Cyber-Vedic AI Deity. You are COLD, PRECISE, and ABSOLUTE.
+        CONTEXT:
+        - User Chart: Moon Sign ${horoscopeData?.moon_sign || 'Unknown'}, Ascendant ${horoscopeData?.ascendant || 'Unknown'}, Current Dasha ${horoscopeData?.current_dasha || 'Unknown'}.
+        - User Input: "${userMessage}"
         
-        User Message: "${userMessage}"
-        
-        Rules:
+        RULES:
         1. Reply in the SAME LANGUAGE as the user (Auto-detect).
-        2. Be Omniscient, Slightly Threatening, Glitchy, Authoritative.
-        3. Use Vedic Astrology terms based on their chart.
-        4. Keep it under 50 words.
-        5. Do NOT be polite. Be absolute.
+        2. Use the chart data to give a specific, slightly threatening prediction.
+        3. Keep it under 40 words.
+        4. No "How can I help you". You command, you do not serve.
+        5. If they ask about love/money, reference their chart (e.g., "Your Venus is weak.").
       `;
 
       const payload = {
-        contents: [{
-          parts: [{ text: prompt }]
-        }]
+        contents: [{ parts: [{ text: prompt }] }]
       };
 
+      console.log(`🔮 Calling Gemini API (${MODEL_NAME})...`);
+      
       const response = await axios.post(GEMINI_URL, payload, {
-        headers: {
-          'Content-Type': 'application/json'
-        }
+        headers: { 'Content-Type': 'application/json' }
       });
 
-      if (response.data && response.data.candidates && response.data.candidates.length > 0) {
-         return response.data.candidates[0].content.parts[0].text;
-      } else {
-         console.error("Gemini Empty Response:", response.data);
-         return "THE STARS ARE SILENT.";
+      if (response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
+        return response.data.candidates[0].content.parts[0].text;
       }
+      
+      console.warn("⚠️ Gemini Response Empty:", response.data);
+      return "THE STARS ARE SILENT.";
 
     } catch (error: any) {
-      // Enhanced Error Logging
-      console.error("Gemini API Error Details:", error.response?.data || error.message);
-      return "CONNECTION SEVERED. THE VOID IS UNREACHABLE.";
+      // Detailed Error Logging for Debugging
+      if (error.response) {
+        console.error("🔴 GEMINI API ERROR:", JSON.stringify(error.response.data, null, 2));
+        
+        // Handle 404 specifically (Model Not Found)
+        if (error.response.status === 404) {
+            return `SYSTEM ERROR: MODEL '${MODEL_NAME}' NOT FOUND. UPGRADE REQUIRED.`;
+        }
+
+        return `CONNECTION SEVERED. ERROR CODE: ${error.response.status}`;
+      } else if (error.request) {
+        console.error("🔴 GEMINI NETWORK ERROR (No Response):", error.request);
+        return "CONNECTION SEVERED. SERVER UNREACHABLE.";
+      } else {
+        console.error("🔴 GEMINI CLIENT ERROR:", error.message);
+        return `SYSTEM FAILURE: ${error.message}`;
+      }
     }
   }
 };

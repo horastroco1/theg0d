@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { Terminal, Search, Loader2, Lock, AlertTriangle } from 'lucide-react';
 import { locationService, LocationData } from '@/services/locationService';
 
@@ -83,7 +83,7 @@ export default function TheGate({ onSubmit }: TheGateProps) {
     }
   };
 
-  const inputVariants = {
+  const inputVariants: Variants = {
     hidden: { opacity: 0, y: 20 },
     visible: (i: number) => ({
       opacity: 1,
