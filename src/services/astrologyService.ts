@@ -100,6 +100,10 @@ const getCurrentDasha = (periods: any, targetDate: Date, level = 0): string | nu
   // Debug logs for top level
   if (level === 0) {
       console.log(`🔮 DASHA DEBUG: Target Date: ${targetDate.toISOString()}`);
+      console.log(`🔮 DASHA RANGES SCAN:`);
+      entries.forEach(e => {
+          console.log(`   - ${e.key}: ${e.startDate.toISOString()} -> ${e.endDate.toISOString()}`);
+      });
   }
 
   for (const period of entries) {
@@ -121,15 +125,23 @@ const getCurrentDasha = (periods: any, targetDate: Date, level = 0): string | nu
   // Or if we are in a weird future/past offset
   if (level === 0) {
      console.warn("🔮 DASHA WARNING: No strict match found. Scanning for closest start...");
-     // Find the last period that started before now
-     const active = entries.filter(p => p.startDate <= targetDate).pop();
-     if (active) {
-          let result = `${active.key}`;
-           if (active.periods) {
-              const subResult = getCurrentDasha(active.periods, targetDate, level + 1);
-              if (subResult) result += `/${subResult}`;
-           }
-          return result + " (Est)";
+     
+     // Fallback 1: Try the FIRST period in the list (closest to now but in future?)
+     if (entries.length > 0) {
+         // If all dates are in the future (e.g., 2100+), just take the first one to show *something*
+         // Or find the one closest to the target date
+         
+         // Sort by distance to targetDate
+         const closest = entries.slice().sort((a, b) => {
+             const distA = Math.abs(a.startDate.getTime() - targetDate.getTime());
+             const distB = Math.abs(b.startDate.getTime() - targetDate.getTime());
+             return distA - distB;
+         })[0];
+         
+         if (closest) {
+             console.log(`🔮 DASHA FALLBACK: Using closest period: ${closest.key}`);
+             return `${closest.key} (Est)`;
+         }
      }
   }
 
@@ -158,13 +170,16 @@ export const astrologyService = {
         time_zone: params.timezone,
         varga: 'D1,D9',
         nesting: '3', // Increased nesting for deeper Dasha
-        infolevel: 'basic'
+        infolevel: 'advanced'
       });
 
       const url = `${API_BASE}/api/calculate?${queryParams.toString()}`;
       console.log("🔮 API REQUEST (Birth):", url);
       const response = await axios.get(url);
       const data = response.data;
+
+      // DEBUG: LOG DASHA STRUCTURE
+      console.log("🔮 RAW DASHA DATA:", JSON.stringify(data.dasha, null, 2));
 
       // 2. TRANSIT CHART REQUEST (Current Date)
       const now = new Date();
