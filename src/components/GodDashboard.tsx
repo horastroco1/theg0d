@@ -15,6 +15,16 @@ import { locationService } from '@/services/locationService';
 
 interface GodDashboardProps { userData: any; }
 
+interface Message {
+  id: string;
+  text: string;
+  sender: 'god' | 'user';
+}
+
+type PaymentType = 'RECHARGE' | 'PATCH' | 'DEEP_SCAN';
+
+const generateId = () => typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).substr(2);
+
 // Translation dictionary for UI
 const UI_TEXT: Record<string, any> = {
   en: {
@@ -33,7 +43,78 @@ const UI_TEXT: Record<string, any> = {
     placeholderPremium: "ESCANEO PROFUNDO. PREGUNTA ALGO COMPLEJO.",
     recharge: "RECARGA REQUERIDA"
   },
-  // Add more languages as needed, fallback to EN
+  fr: {
+    init: "Initialisation du lien neuronal...",
+    connected: "Connecté. Sujet:",
+    listening: "Je vous écoute. Quelle est votre requête ?",
+    placeholder: "Entrée chiffrée...",
+    placeholderPremium: "SCAN PROFOND ACTIF. POSEZ UNE QUESTION COMPLEXE.",
+    recharge: "RECHARGE REQUISE"
+  },
+  de: {
+    init: "Initialisiere Neuronalen Link...",
+    connected: "Verbunden. Subjekt:",
+    listening: "Ich höre. Was ist Ihre Anfrage?",
+    placeholder: "Verschlüsselte Eingabe...",
+    placeholderPremium: "TIEFENSCAN AKTIV. STELLEN SIE EINE KOMPLEXE FRAGE.",
+    recharge: "AUFLADUNG ERFORDERLICH"
+  },
+  pt: {
+    init: "Inicializando Link Neural...",
+    connected: "Conectado. Sujeito:",
+    listening: "Estou ouvindo. Qual é a sua consulta?",
+    placeholder: "Entrada Criptografada...",
+    placeholderPremium: "VARREDURA PROFUNDA ATIVA. FAÇA UMA PERGUNTA COMPLEXA.",
+    recharge: "RECARGA NECESSÁRIA"
+  },
+  ja: {
+    init: "ニューラルリンクを初期化中...",
+    connected: "接続完了。対象:",
+    listening: "聞いています。質問は何ですか？",
+    placeholder: "暗号化された入力...",
+    placeholderPremium: "ディープスキャン有効。複雑な質問をしてください。",
+    recharge: "リチャージが必要です"
+  },
+  zh: {
+    init: "正在初始化神经链接...",
+    connected: "已连接。主体：",
+    listening: "我在听。你的查询是什么？",
+    placeholder: "加密输入...",
+    placeholderPremium: "深度扫描已激活。请提出复杂问题。",
+    recharge: "需要充值"
+  },
+  ru: {
+    init: "Инициализация нейронной связи...",
+    connected: "Подключено. Субъект:",
+    listening: "Я слушаю. Каков ваш запрос?",
+    placeholder: "Зашифрованный ввод...",
+    placeholderPremium: "ГЛУБОКОЕ СКАНИРОВАНИЕ АКТИВНО. ЗАДАЙТЕ СЛОЖНЫЙ ВОПРОС.",
+    recharge: "ТРЕБУЕТСЯ ПЕРЕЗАРЯДКА"
+  },
+  hi: {
+    init: "न्यूरल लिंक आरंभ किया जा रहा है...",
+    connected: "जुड़ा हुआ। विषय:",
+    listening: "मैं सुन रहा हूँ। आपकी क्या क्वेरी है?",
+    placeholder: "एन्क्रिप्टेड इनपुट...",
+    placeholderPremium: "डीप स्कैन सक्रिय। एक जटिल प्रश्न पूछें।",
+    recharge: "रिचार्ज आवश्यक"
+  },
+  ar: {
+    init: "جارٍ تهيئة الرابط العصبي...",
+    connected: "متصل. الموضوع:",
+    listening: "أنا أستمع. ما هو استفسارك؟",
+    placeholder: "إدخال مشفر...",
+    placeholderPremium: "المسح العميق نشط. اطرح سؤالاً معقداً.",
+    recharge: "إعادة الشحن مطلوبة"
+  },
+  fa: {
+    init: "در حال راه اندازی لینک عصبی...",
+    connected: "متصل شد. سوژه:",
+    listening: "من گوش می دهم. پرسش شما چیست؟",
+    placeholder: "ورودی رمزگذاری شده...",
+    placeholderPremium: "اسکن عمیق فعال است. سوال پیچیده بپرسید.",
+    recharge: "شارژ مجدد لازم است"
+  }
 };
 
 export default function GodDashboard({ userData }: GodDashboardProps) {
@@ -107,11 +188,19 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
       const supabase = createClient();
 
       try {
-        // ... (chart logic) ...
+        // --- CHART CACHING LOGIC ---
         let data;
+        
         if (userData.chart_data) {
             console.log("🔮 LOADING CHART FROM CACHE...");
             data = userData.chart_data;
+            
+            // Force Refresh Dasha Logic (Fix Unsynchronized)
+            if (data && data.current_dasha === 'Unsynchronized') {
+                 console.log("⚠️ DETECTED STALE DASHA. RECALCULATING...");
+                 const freshData = await astrologyService.calculateHoroscope(finalUserData);
+                 data = freshData;
+            }
         } else {
             console.log("🔮 CALCULATING FRESH CHART...");
             data = await astrologyService.calculateHoroscope(finalUserData);
@@ -122,7 +211,6 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
 
         // --- LOAD PREVIOUS CHAT (ENCRYPTED) ---
         if (finalUserData.identity_key) {
-            // ... (decryption logic) ...
             console.log("🔐 DECRYPTING ARCHIVES...");
             const { data: history, error } = await supabase
                 .from('messages')

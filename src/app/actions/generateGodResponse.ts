@@ -73,10 +73,13 @@ export async function generateGodResponse(
         return `${key}: Rashi ${val.rashi}, Degree ${val.degree.toFixed(2)}`;
       }).join('\n        ');
   
-      const houseSummary = Object.entries(horoscopeData?.houses || {}).map(([key, val]: [string, any]) => 
-        `House ${key}: Rashi ${val.rashi}`
-      ).join(' | ');
-  
+      const houseSummary = Object.entries(horoscopeData?.houses || {}).map(([key, val]: [string, any]) => {
+        // Extract planets in this house
+        const planetsInHouse = Object.keys(val.graha || {}).join(', ');
+        const sign = val.rashi;
+        return `House ${key} (Sign: ${sign}): Contains [${planetsInHouse || 'Empty'}]`;
+      }).join('\n        ');
+
       // Construct System Context with Dynamic Protocol
       const systemContext = `
         ${GOD_SYSTEM_PROMPT}
