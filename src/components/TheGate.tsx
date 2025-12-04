@@ -270,7 +270,11 @@ export default function TheGate({ onSubmit }: TheGateProps) {
           }
         ]);
         
-      if (dbError) console.error("DB Backup Failed:", dbError);
+      if (dbError) {
+        console.error("DB Backup Failed:", JSON.stringify(dbError, null, 2));
+        // Don't block the UI, just log it. 
+        // The user can still proceed with local data if needed, but for now we assume success in UI.
+      }
 
       // STOP LOADING & SHOW KEY
       setIsLoading(false);

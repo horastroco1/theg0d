@@ -28,62 +28,128 @@ const RASHI_NAMES = [
   "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"
 ];
 
-// Helper to extract date components from API string "YYYY-MM-DD HH:mm:ss"
+// Helper to extract date components from API string with high robustness
 const parseApiDate = (dateStr: string): Date => {
-  // Handle ISO format or Space-separated
-  const cleanStr = dateStr.replace(' ', 'T');
-  const date = new Date(cleanStr);
+  if (!dateStr || typeof dateStr !== 'string') return new Date(0); // Invalid input fallback
+
+  const cleanStr = dateStr.trim();
   
-  // Fallback manual parsing if basic Date fails (Safari/Mobile fix)
-  if (isNaN(date.getTime())) {
-    const [d, t] = dateStr.split(' ');
-    const [year, month, day] = d.split('-').map(Number);
-    const [hour, min, sec] = t.split(':').map(Number);
+  // 1. Try standard Date parse (ISO, etc.)
+  const stdDate = new Date(cleanStr.replace(' ', 'T'));
+  if (!isNaN(stdDate.getTime())) return stdDate;
+
+  // 2. Manual Parsing for various formats
+  try {
+    // Split date and time
+    const [dPart, tPart] = cleanStr.split(' ');
+    if (!dPart) return new Date(0);
+    
+    let year, month, day;
+    
+    // Handle Separators (- or /)
+    const separator = dPart.includes('-') ? '-' : dPart.includes('/') ? '/' : null;
+    
+    if (separator) {
+        const parts = dPart.split(separator).map(Number);
+        
+        // Heuristic: Year is usually > 31
+        if (parts[0] > 31) {
+            // Format: YYYY-MM-DD
+            [year, month, day] = parts;
+        } else if (parts[2] > 31) {
+            // Format: DD-MM-YYYY or MM-DD-YYYY
+            // Ambiguity check: If parts[1] > 12, it's definitely MM (so DD-MM-YYYY)
+            // But standard is usually DD-MM-YYYY in this API.
+            [day, month, year] = parts;
+        } else {
+            // Ambiguous (e.g. 01-02-2024). Default to DD-MM-YYYY
+            [day, month, year] = parts;
+        }
+    } else {
+        // No separator? Maybe 19990101?
+        if (dPart.length === 8) {
+             year = Number(dPart.substring(0, 4));
+             month = Number(dPart.substring(4, 6));
+             day = Number(dPart.substring(6, 8));
+        } else {
+            return new Date(0);
+        }
+    }
+    
+    // Parse Time
+    let hour = 0, min = 0, sec = 0;
+    if (tPart) {
+        const tParts = tPart.split(':').map(Number);
+        hour = tParts[0] || 0;
+        min = tParts[1] || 0;
+        sec = tParts[2] || 0;
+    }
+
+    // Validation
+    if (month < 1 || month > 12 || day < 1 || day > 31) return new Date(0);
+
     return new Date(Date.UTC(year, month - 1, day, hour, min, sec));
+
+  } catch (e) {
+    console.warn("Date Parse Error:", e);
+    return new Date(0);
   }
-  return date;
 };
 
 // Recursive function to find the active Dasha period for the current date
 const getCurrentDasha = (periods: any, targetDate: Date, level = 0): string | null => {
-  if (!periods) {
-    if (level === 0) console.log(`Level ${level}: No periods data found.`);
-    return null;
+  if (!periods || typeof periods !== 'object') return null;
+
+  // Sort periods by start date to ensure we check them in order
+  const entries = Object.entries(periods).map(([key, val]: [string, any]) => ({
+      key,
+      ...val,
+      startDate: parseApiDate(val.start),
+      endDate: parseApiDate(val.end)
+  })).sort((a, b) => a.startDate.getTime() - b.startDate.getTime());
+
+  // Debug logs for top level
+  if (level === 0) {
+      console.log(`🔮 DASHA DEBUG: Target Date: ${targetDate.toISOString()}`);
+      if (entries.length > 0) {
+          console.log(`🔮 DASHA DEBUG: Sample Period [0]: ${entries[0].key} (${entries[0].startDate.toISOString()} - ${entries[0].endDate.toISOString()})`);
+          console.log(`🔮 DASHA DEBUG: Raw Start String: ${entries[0].start}`);
+      } else {
+          console.log("🔮 DASHA DEBUG: No periods found to check.");
+      }
   }
 
-  let closestPeriod = null;
-
-  for (const [planetKey, periodData] of Object.entries(periods) as [string, any][]) {
-    const start = parseApiDate(periodData.start);
-    const end = parseApiDate(periodData.end);
-
-    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-      continue;
-    }
-
-    // Check if targetDate is within the range [start, end)
-    if (targetDate >= start && targetDate < end) {
-      let result = planetKey;
-      
-      if (periodData.periods) {
-        const subResult = getCurrentDasha(periodData.periods, targetDate, level + 1);
-        if (subResult) {
-          result += `/${subResult}`;
+  for (const period of entries) {
+    // Buffer of 1 minute to handle boundary conditions
+    const buffer = 60000; 
+    if (targetDate.getTime() >= period.startDate.getTime() - buffer && 
+        targetDate.getTime() < period.endDate.getTime() + buffer) {
+        
+        let result = period.key;
+        // Recursively find sub-periods
+        if (period.periods && level < 2) { 
+            const subResult = getCurrentDasha(period.periods, targetDate, level + 1);
+            if (subResult) result += `/${subResult}`;
         }
-      }
-      return result;
-    }
-    
-    // Fallback: Track closest period (in case of slight timezone drift)
-    if (targetDate > start) {
-       closestPeriod = planetKey;
+        return result;
     }
   }
   
-  // If no exact match, return closest past period (better than nothing)
-  if (level === 0 && closestPeriod) {
-      console.log("Level 0: No exact match, using closest past period:", closestPeriod);
-      return `${closestPeriod} (Approx)`;
+  // Fallback: If no exact match found at top level, try to find the closest one in the past
+  if (level === 0) {
+      // Find the period that started most recently before targetDate
+      const lastStarted = entries.filter(p => p.startDate <= targetDate).pop();
+      if (lastStarted) {
+          console.log(`🔮 DASHA FALLBACK: No exact match. Using last started period: ${lastStarted.key}`);
+          let result = `${lastStarted.key} (Approx)`;
+           // Try to go deeper even on approx match
+           if (lastStarted.periods) {
+              const subResult = getCurrentDasha(lastStarted.periods, targetDate, level + 1);
+              if (subResult) result = `${lastStarted.key}/${subResult}*`;
+           }
+          return result;
+      }
+      console.warn("🔮 DASHA WARNING: Date is out of range of all periods.");
   }
 
   return null;

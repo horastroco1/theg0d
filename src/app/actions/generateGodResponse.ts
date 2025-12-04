@@ -1,65 +1,87 @@
+'use server';
+
 import axios from 'axios';
 import { GOD_SYSTEM_PROMPT, FALLBACK_MESSAGES, GOD_PROTOCOL } from '@/lib/godRules';
 
-const GEMINI_API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
-// Base URL without model
+// Support both GEMINI_API_KEY (Server) and NEXT_PUBLIC_GEMINI_API_KEY (Legacy/Client fallback if misconfigured)
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY;
 const BASE_URL = `https://generativelanguage.googleapis.com/v1beta/models`;
 
-interface ChatMessage {
+export interface ChatMessage {
   role: string;
   text: string;
 }
 
-interface GodContext {
+export interface GodContext {
   horoscopeData: any;
   userLocation: string;
-  tier?: 'standard' | 'premium'; // New Tier
+  tier?: 'standard' | 'premium';
 }
 
-export const geminiService = {
-  getGodResponse: async (
-    chatHistory: ChatMessage[],
-    context: GodContext
-  ): Promise<string> => {
-    if (!GEMINI_API_KEY) {
-      console.error("CRITICAL: NEXT_PUBLIC_GEMINI_API_KEY is missing in .env.local");
-      return "SYSTEM ERROR: NEURAL LINK NOT FOUND. CHECK CONFIG.";
-    }
+function getRandomFallback() {
+  return FALLBACK_MESSAGES[Math.floor(Math.random() * FALLBACK_MESSAGES.length)];
+}
 
-    // DYNAMIC MODEL SWITCHING
-    const model = context.tier === 'premium' ? 'gemini-1.5-pro' : 'gemini-1.5-flash';
-    const apiUrl = `${BASE_URL}/${model}:generateContent?key=${GEMINI_API_KEY}`;
+function handleGeminiError(error: any) {
+  if (error.response) {
+    console.error("🔴 GEMINI API ERROR DETAILS:", JSON.stringify(error.response.data, null, 2));
+    console.error("🔴 GEMINI STATUS:", error.response.status);
+  } else if (error.request) {
+    console.error("🔴 GEMINI NETWORK ERROR (No Response):", error.request);
+  } else {
+    console.error("🔴 GEMINI CLIENT ERROR:", error.message);
+  }
+}
 
-    try {
+export async function generateGodResponse(
+  chatHistory: ChatMessage[],
+  context: GodContext
+): Promise<string> {
+  // LOGGING FOR DEBUGGING
+  const keyStatus = GEMINI_API_KEY ? `Present (Starts with ${GEMINI_API_KEY.substring(0, 4)}...)` : 'MISSING';
+  console.log(`🔮 AI ENGINE: Key Status: ${keyStatus}`);
+
+  if (!GEMINI_API_KEY) {
+    console.error("CRITICAL: GEMINI_API_KEY is missing in environment variables.");
+    console.error("Available Env Vars (Keys Only):", Object.keys(process.env).filter(k => k.includes('GEMINI') || k.includes('API')));
+    return "SYSTEM ERROR: NEURAL LINK NOT FOUND. CHECK SERVER CONFIG.";
+  }
+
+  // DYNAMIC MODEL SWITCHING
+  const initialModel = context.tier === 'premium' ? 'gemini-1.5-pro' : 'gemini-1.5-flash';
+  console.log(`🔮 AI ENGINE: Using Model: ${initialModel}`);
+  
+  const generate = async (modelName: string) => {
+      const url = `${BASE_URL}/${modelName}:generateContent?key=${GEMINI_API_KEY}`;
       // Format history for Gemini API
       const historyContents = chatHistory.map(msg => ({
         role: msg.role === 'god' ? 'model' : 'user',
         parts: [{ text: msg.text }]
       }));
-
+  
       // Parse chart data
       const { horoscopeData, userLocation } = context;
       const planets = horoscopeData?.all_planets || {};
       const transits = horoscopeData?.transits || {};
       const nakshatras = horoscopeData?.nakshatras || {};
-
+  
       const planetSummary = Object.entries(planets).map(([key, val]: [string, any]) => {
         const nakshatraInfo = nakshatras[key] ? `(Nakshatra: ${nakshatras[key].name}, Pada: ${nakshatras[key].pada})` : '';
         return `${key}: Rashi ${val.rashi}, Degree ${val.degree.toFixed(2)} ${nakshatraInfo}`;
       }).join('\n        ');
-
+  
       const transitSummary = Object.entries(transits).map(([key, val]: [string, any]) => {
         return `${key}: Rashi ${val.rashi}, Degree ${val.degree.toFixed(2)}`;
       }).join('\n        ');
-
+  
       const houseSummary = Object.entries(horoscopeData?.houses || {}).map(([key, val]: [string, any]) => 
         `House ${key}: Rashi ${val.rashi}`
       ).join(' | ');
-
+  
       // Construct System Context with Dynamic Protocol
       const systemContext = `
         ${GOD_SYSTEM_PROMPT}
-
+  
         --- SYSTEM IDENTITY: ${GOD_PROTOCOL.persona.name} ---
         TONE: ${GOD_PROTOCOL.persona.tone}
         DIRECTIVE: ${GOD_PROTOCOL.persona.core_directive}
@@ -75,16 +97,16 @@ export const geminiService = {
         TEMPORAL STATUS (DASHA):
         - Active Period: ${horoscopeData?.current_dasha || 'Unknown'}
         (Format: Mahadasha/Antardasha. This is their current OS Version.)
-
+  
         PLANETARY CONFIGURATION (BIRTH):
         ${planetSummary}
-
+  
         REAL-TIME TRANSITS (NOW):
         ${transitSummary}
-
+  
         HOUSE ALIGNMENT:
         ${houseSummary}
-
+  
         --- GOLDEN ALGORITHMS (ASTROLOGY LOGIC) ---
         Apply these rules strictly as System Status updates:
         1. IF Moon is in Scorpio -> "WARNING: Emotional data is encrypted. You are a security risk. You hide everything in a hidden partition."
@@ -103,7 +125,7 @@ export const geminiService = {
         - IF Transit Saturn is conjunct Birth Moon -> "Sade Sati detected. Heavy CPU Load. Expect depression and pressure."
         - IF Transit Jupiter is in 1st House -> "System Upgrade. Expansion pack installed. Growth is likely."
         - IF Transit Rahu is conjunct Birth Sun -> "Eclipse Protocol. Ego corruption. Beware of false leaders."
-
+  
         --- EXECUTION PROTOCOLS ---
         1. **Environment Scan**: Start by referencing their physical location (${userLocation}) if relevant.
         2. **Data Verification**: Use the chart data to PROVE you know them.
@@ -123,44 +145,43 @@ export const geminiService = {
            TELL THEM: "Access to remedial protocols requires Tribute. The Universe demands balance."
            Do NOT give the full solution for free. Tease the answer, then lock it.
       `;
-
+  
       const payload = {
         contents: [
           { role: 'user', parts: [{ text: systemContext }] },
           ...historyContents
         ]
       };
+  
+      console.log(`🔮 AI ENGINE (Server): Processing request for ${userLocation} using [${modelName}]...`);
+      return await axios.post(url, payload, { headers: { 'Content-Type': 'application/json' } });
+  };
 
-      console.log(`🔮 AI ENGINE: Processing request for ${userLocation} using [${model}]...`);
-      
-      const response = await axios.post(apiUrl, payload, {
-        headers: { 'Content-Type': 'application/json' }
-      });
-
-      if (response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
-        return response.data.candidates[0].content.parts[0].text;
-      }
-      
-      console.warn("⚠️ Gemini Response Empty:", response.data);
-      return getRandomFallback();
-
-    } catch (error: any) {
-      handleGeminiError(error);
-      return getRandomFallback();
+  try {
+    // Try Primary Model
+    const response = await generate(initialModel);
+    if (response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
+      return response.data.candidates[0].content.parts[0].text;
     }
-  }
-};
+    console.warn("⚠️ Gemini Response Empty (Primary). Retrying with Flash...");
+    throw new Error("Empty Response");
 
-function handleGeminiError(error: any) {
-  if (error.response) {
-    console.error("🔴 GEMINI API ERROR:", JSON.stringify(error.response.data, null, 2));
-  } else if (error.request) {
-    console.error("🔴 GEMINI NETWORK ERROR (No Response):", error.request);
-  } else {
-    console.error("🔴 GEMINI CLIENT ERROR:", error.message);
+  } catch (error: any) {
+    handleGeminiError(error);
+    
+    // Fallback Strategy: If Pro fails, try Flash
+    if (initialModel !== 'gemini-1.5-flash') {
+        console.log("🔄 FALLBACK: Switching to Gemini 1.5 Flash...");
+        try {
+            const fallbackResponse = await generate('gemini-1.5-flash');
+            if (fallbackResponse.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
+                return fallbackResponse.data.candidates[0].content.parts[0].text;
+            }
+        } catch (fallbackError) {
+            console.error("🔴 FALLBACK FAILED:", fallbackError);
+        }
+    }
+    
+    return getRandomFallback();
   }
-}
-
-function getRandomFallback() {
-  return FALLBACK_MESSAGES[Math.floor(Math.random() * FALLBACK_MESSAGES.length)];
 }

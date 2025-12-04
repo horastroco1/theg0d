@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, Activity, Coins, X, Sparkles, Wifi, Battery, Zap, Lock, Copy, Share2 } from 'lucide-react';
 import { astrologyService, HoroscopeData } from '@/services/astrologyService';
-import { geminiService } from '@/services/geminiService';
+import { generateGodResponse } from '@/app/actions/generateGodResponse';
 import { security } from '@/lib/security';
 import { paymentService } from '@/services/paymentService';
 import { createClient } from '@/lib/supabase';
@@ -34,6 +34,7 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
   const [showPaymentModal, setShowPaymentModal] = useState<{show: boolean, type: PaymentType | null}>({ show: false, type: null });
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [paymentResult, setPaymentResult] = useState<any>(null);
+  const [isVerifying, setIsVerifying] = useState(false); // New verification state
   const chatEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null); // Ref for auto-focus
   const [isTyping, setIsTyping] = useState(false);
@@ -53,6 +54,22 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
 
     // Check local storage for today's energy
     const today = new Date().toISOString().split('T')[0];
+    
+    // DEV GOD MODE: Infinite Energy on Localhost
+    if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+        console.log("⚡ GOD MODE ACTIVE: INFINITE ENERGY");
+        
+        // Force override local storage immediately to prevent sync issues
+        localStorage.setItem(`energy_${today}`, '9999');
+        
+        setEnergy(9999);
+        setLoading(false);
+        initializationRef.current = true;
+        
+        // Skip normal init if we want, or just let it run but keep energy high
+        // We'll let the normal init run but override energy
+    }
+    
     const storedEnergy = localStorage.getItem(`energy_${today}`);
     if (storedEnergy) {
         setEnergy(parseInt(storedEnergy));
@@ -196,7 +213,7 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
     try {
       const apiHistory = newHistory.map(m => ({ role: m.sender, text: m.text }));
 
-      const response = await geminiService.getGodResponse(
+      const response = await generateGodResponse(
         apiHistory, 
         {
             horoscopeData: horoscope,
@@ -224,6 +241,7 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
    const handlePayment = async () => {
       setPaymentLoading(true);
       setPaymentResult(null);
+      setIsVerifying(false);
       const type = showPaymentModal.type;
       let amount = 5;
       let desc = "Energy Recharge";
@@ -239,6 +257,24 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
           setPaymentLoading(false);
           alert("Payment Gateway Error. Check Console.");
       }
+  };
+
+  const confirmPayment = async () => {
+      setIsVerifying(true);
+      // Fake delay to simulate blockchain verification
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
+      setIsVerifying(false);
+      setShowPaymentModal({ show: false, type: null });
+      
+      if (showPaymentModal.type === 'RECHARGE') setEnergy(e => e + 20);
+      if (showPaymentModal.type === 'DEEP_SCAN') setIsPremiumMode(true);
+      
+      setPaymentResult(null);
+      
+      // Success Sound & Feedback
+      audioService.play('init');
+      setMessages(prev => [...prev, { id: generateId(), text: "TRIBUTE ACCEPTED. PROTOCOLS UNLOCKED.", sender: 'god' }]);
   };
 
   return (
@@ -259,10 +295,12 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
             </div>
         </div>
 
-        <div className="flex items-center gap-4 bg-[#1C1C1E] px-4 py-2 rounded-full border border-white/5">
+            <div className="flex items-center gap-4 bg-[#1C1C1E] px-4 py-2 rounded-full border border-white/5">
             <div className="flex items-center gap-2">
                  <Battery className={`w-3 h-3 ${energy < 2 ? 'text-red-500 animate-pulse' : 'text-[#00FF41]'}`} />
-                 <span className="text-[10px] font-mono text-[#86868B]">{energy}/5</span>
+                 <span className="text-[10px] font-mono text-[#86868B]">
+                    {energy > 9000 ? "∞" : `${energy}/5`}
+                 </span>
             </div>
             <div className="w-[1px] h-3 bg-white/10"></div>
             <div className="flex items-center gap-2">
@@ -389,15 +427,18 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
                               </div>
                          </div>
                          <button 
-                             onClick={() => {
-                                 setShowPaymentModal({ show: false, type: null });
-                                 if (showPaymentModal.type === 'RECHARGE') setEnergy(e => e + 20);
-                                 if (showPaymentModal.type === 'DEEP_SCAN') setIsPremiumMode(true); // Activate Premium
-                                 setPaymentResult(null);
-                             }} 
-                             className="w-full bg-[#00FF41] text-black font-bold py-4 rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                             onClick={confirmPayment}
+                             disabled={isVerifying}
+                             className="w-full bg-[#00FF41] text-black font-bold py-4 rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-wait"
                          >
-                             I HAVE SENT IT
+                             {isVerifying ? (
+                                 <>
+                                     <div className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin"/>
+                                     VERIFYING ON BLOCKCHAIN...
+                                 </>
+                             ) : (
+                                 "I HAVE SENT IT"
+                             )}
                          </button>
                     </div>
                 ) : (
