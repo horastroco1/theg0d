@@ -2,8 +2,8 @@ import axios from 'axios';
 import { GOD_SYSTEM_PROMPT, FALLBACK_MESSAGES, GOD_PROTOCOL } from '@/lib/godRules';
 
 const GEMINI_API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
-const MODEL_NAME = 'gemini-1.5-flash'; 
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${GEMINI_API_KEY}`;
+// Base URL without model
+const BASE_URL = `https://generativelanguage.googleapis.com/v1beta/models`;
 
 interface ChatMessage {
   role: string;
@@ -13,6 +13,7 @@ interface ChatMessage {
 interface GodContext {
   horoscopeData: any;
   userLocation: string;
+  tier?: 'standard' | 'premium'; // New Tier
 }
 
 export const geminiService = {
@@ -24,6 +25,10 @@ export const geminiService = {
       console.error("CRITICAL: NEXT_PUBLIC_GEMINI_API_KEY is missing in .env.local");
       return "SYSTEM ERROR: NEURAL LINK NOT FOUND. CHECK CONFIG.";
     }
+
+    // DYNAMIC MODEL SWITCHING
+    const model = context.tier === 'premium' ? 'gemini-1.5-pro' : 'gemini-1.5-flash';
+    const apiUrl = `${BASE_URL}/${model}:generateContent?key=${GEMINI_API_KEY}`;
 
     try {
       // Format history for Gemini API
@@ -126,9 +131,9 @@ export const geminiService = {
         ]
       };
 
-      console.log(`🔮 AI ENGINE: Processing request for ${userLocation}...`);
+      console.log(`🔮 AI ENGINE: Processing request for ${userLocation} using [${model}]...`);
       
-      const response = await axios.post(GEMINI_URL, payload, {
+      const response = await axios.post(apiUrl, payload, {
         headers: { 'Content-Type': 'application/json' }
       });
 

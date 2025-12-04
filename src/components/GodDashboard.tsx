@@ -37,6 +37,7 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
   const chatEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null); // Ref for auto-focus
   const [isTyping, setIsTyping] = useState(false);
+  const [isPremiumMode, setIsPremiumMode] = useState(false); // Track Premium State
 
   // Use user data or default if missing
   const finalUserData = userData || {
@@ -199,9 +200,12 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
         apiHistory, 
         {
             horoscopeData: horoscope,
-            userLocation: finalUserData.locationName || "Unknown Grid"
+            userLocation: finalUserData.locationName || "Unknown Grid",
+            tier: isPremiumMode ? 'premium' : 'standard'
         }
       );
+      
+      if (isPremiumMode) setIsPremiumMode(false); // Consume the premium token
       
       setMessages(prev => [...prev, { id: generateId(), text: response, sender: 'god' }]);
       audioService.play('message'); // AUDIO: God Reply
@@ -340,19 +344,19 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
             ))}
         </div>
 
-        <form onSubmit={handleSend} className="relative max-w-3xl mx-auto w-full">
+        <form onSubmit={handleSend} className={`relative max-w-3xl mx-auto w-full transition-all duration-500 ${isPremiumMode ? 'p-[1px] rounded-full bg-gradient-to-r from-[#FFD700] via-[#FFA500] to-[#FFD700]' : ''}`}>
             <input 
                 ref={inputRef}
                 type="text" 
                 value={input}
                 onChange={e => setInput(e.target.value)}
-                placeholder={energy > 0 ? "Encrypted Input..." : "RECHARGE REQUIRED"}
+                placeholder={isPremiumMode ? "DEEP SCAN ACTIVE. ASK A COMPLEX QUESTION." : (energy > 0 ? "Encrypted Input..." : "RECHARGE REQUIRED")}
                 disabled={energy <= 0}
-                className="w-full bg-white/5 backdrop-blur-xl text-white pl-6 pr-14 py-4 rounded-full border border-white/10 focus:border-[#00FF41]/30 focus:bg-white/10 outline-none transition-all shadow-[0_8px_32px_rgba(0,0,0,0.4)] placeholder-[#666] text-base disabled:opacity-50"
+                className={`w-full bg-white/5 backdrop-blur-xl text-white pl-6 pr-14 py-4 rounded-full border ${isPremiumMode ? 'border-transparent' : 'border-white/10'} focus:border-[#00FF41]/30 focus:bg-white/10 outline-none transition-all shadow-[0_8px_32px_rgba(0,0,0,0.4)] placeholder-[#666] text-base disabled:opacity-50`}
                 autoComplete="off"
             />
-            <button type="submit" disabled={!input.trim() || isTyping || energy <= 0} className="absolute right-2 top-2 w-10 h-10 bg-[#00FF41] rounded-full flex items-center justify-center text-black hover:scale-105 active:scale-95 transition-all disabled:opacity-0 disabled:scale-50 shadow-[0_0_15px_rgba(0,255,65,0.4)]">
-                <Send className="w-5 h-5 ml-0.5" />
+            <button type="submit" disabled={!input.trim() || isTyping || energy <= 0} className={`absolute right-2 top-2 w-10 h-10 rounded-full flex items-center justify-center text-black hover:scale-105 active:scale-95 transition-all disabled:opacity-0 disabled:scale-50 shadow-[0_0_15px_rgba(0,255,65,0.4)] ${isPremiumMode ? 'bg-[#FFD700] shadow-[0_0_20px_rgba(255,215,0,0.6)]' : 'bg-[#00FF41]'}`}>
+                {isPremiumMode ? <Sparkles className="w-5 h-5 ml-0.5" /> : <Send className="w-5 h-5 ml-0.5" />}
             </button>
         </form>
       </div>
@@ -388,6 +392,7 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
                              onClick={() => {
                                  setShowPaymentModal({ show: false, type: null });
                                  if (showPaymentModal.type === 'RECHARGE') setEnergy(e => e + 20);
+                                 if (showPaymentModal.type === 'DEEP_SCAN') setIsPremiumMode(true); // Activate Premium
                                  setPaymentResult(null);
                              }} 
                              className="w-full bg-[#00FF41] text-black font-bold py-4 rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
