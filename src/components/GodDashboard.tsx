@@ -44,7 +44,6 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
       setMessages([{ id: 'init', text: "CONNECTING TO COSMIC MAINFRAME...", sender: 'god' }]);
       
       try {
-        // Use latitude/longitude from userData (TheGate provides these keys)
         const data = await astrologyService.calculateHoroscope({
             latitude: userData.latitude,
             longitude: userData.longitude,
@@ -57,10 +56,8 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
         setHoroscope(data);
         setLoading(false);
 
-        // Initial God Message
-        // Fallback if structure is different or missing
-        const dasha = data.current_dasha || data.dasha?.periods?.Sa?.key || 'UNKNOWN';
-        const moonSign = data.moon_sign || data.chart?.graha?.Mo?.rashi || 'UNKNOWN';
+        const dasha = data.current_dasha || 'UNKNOWN';
+        const moonSign = data.moon_sign || 'UNKNOWN';
         const ascendant = data.ascendant || 'UNKNOWN';
 
         setTimeout(() => {
@@ -75,7 +72,7 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
       } catch (e: any) {
         console.error("Dashboard Init Failed:", e);
         setLoading(false);
-        setError("CONNECTION SEVERED. FATE CALCULATION FAILED. RETRY.");
+        setError(e.message || "CONNECTION SEVERED.");
         setMessages(prev => [...prev, { id: 'err', text: `ERROR: ${e.message}`, sender: 'god' }]);
       }
     };
@@ -88,12 +85,10 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
     if (!input.trim() || loading) return;
     
     const userMsgId = Math.random().toString(36).substr(2, 9);
-    // Deduction and Send
     setSanity(s => Math.max(0, s - 5)); 
     setMessages(prev => [...prev, { id: userMsgId, text: input, sender: 'user' }]);
     setInput('');
     
-    // Mock AI Response
     setTimeout(() => {
         const rules = ["Pain is structural engineering for the soul.", "Entropy is the only constant. Accept it.", "The stars do not care. They only burn."];
         const randomResponse = rules[Math.floor(Math.random() * rules.length)];

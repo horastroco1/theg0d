@@ -14,41 +14,51 @@ export interface AstrologyParams {
 export const astrologyService = {
   calculateHoroscope: async (params: AstrologyParams) => {
     try {
-      // Parse Date (CRITICAL FIX: Split the string into individual params)
-      const [year, month, day] = params.date.split('-').map(Number);
-      
+      // --- CRITICAL FIX: Parse strings into Integers for the API ---
+      const [year, month, day] = params.date.split('-').map(str => parseInt(str, 10));
       let hour = 12;
       let min = 0;
       
       if (!params.timeUnknown && params.time) {
-        [hour, min] = params.time.split(':').map(Number);
+        [hour, min] = params.time.split(':').map(str => parseInt(str, 10));
       }
 
-      // Use axios 'params' object for clean GET query construction
-      const queryParams = new URLSearchParams({
-        latitude: params.latitude.toString(),
-        longitude: params.longitude.toString(),
-        year: year.toString(),
-        month: month.toString(),
-        day: day.toString(),
-        hour: hour.toString(),
-        min: min.toString(),
-        sec: '0',
-        time_zone: params.timezone, 
+      // AXIOS will serialize this object into the URL query string perfectly
+      const queryParams = {
+        latitude: params.latitude,
+        longitude: params.longitude,
+        year: year,
+        month: month,
+        day: day,
+        hour: hour,
+        min: min,
+        sec: 0, 
+        time_zone: params.timezone,
         varga: 'D1,D9',
-        nesting: '2',
+        nesting: 2,
         infolevel: 'basic'
-      });
+      };
 
-      console.log("🔮 CALLING API WITH PARAMS:", queryParams.toString());
+      console.log("🔮 CALLING API WITH PARAMS (Check Console for URL):", queryParams);
       
-      // AXIOS will correctly serialize this object into the URL query string
-      const response = await axios.get(`${API_URL}?${queryParams.toString()}`);
-      return response.data;
-
-    } catch (error) {
-      console.error("API ERROR:", error);
-      throw new Error("CONNECTION SEVERED. FATE CALCULATION FAILED.");
+      const response = await axios.get(API_URL, { params: queryParams });
+      
+      const data = response.data;
+      
+      // Map API response to standard structure
+      // Note: Depending on exact API response shape, these paths might need adjustment.
+      // Assuming typical vedic structure for demonstration based on previous context.
+      return {
+          ascendant: data.ascendant || data.chart?.lagna?.Lg?.rashi || "Unknown",
+          moon_sign: data.moon_sign || data.chart?.graha?.Mo?.rashi || "Unknown",
+          current_dasha: data.current_dasha || "Syncing...",
+          isMoonChart: !!params.timeUnknown,
+          raw_response: data
+      };
+      
+    } catch (error: any) {
+      console.error("API FAILURE LOG:", error.message);
+      throw new Error(`CONNECTION SEVERED. CODE: ${error.response?.status || 'NETWORK ERROR'}`);
     }
   }
 };
