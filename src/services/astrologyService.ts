@@ -17,10 +17,11 @@ export interface HoroscopeData {
   current_dasha?: string;
   all_planets?: any; 
   houses?: any; 
+  planet_houses?: any; // New: Calculated houses for each planet
   isMoonChart: boolean;
   raw_response?: any;
   nakshatras?: any;
-  transits?: any; // Added transits support
+  transits?: any;
 }
 
 const RASHI_NAMES = [
@@ -30,7 +31,7 @@ const RASHI_NAMES = [
 
 // Helper to extract date components from API string with high robustness
 const parseApiDate = (dateStr: string): Date => {
-  if (!dateStr || typeof dateStr !== 'string') return new Date(0); // Invalid input fallback
+  if (!dateStr || typeof dateStr !== 'string') return new Date(0);
 
   const cleanStr = dateStr.trim();
   
@@ -40,33 +41,24 @@ const parseApiDate = (dateStr: string): Date => {
 
   // 2. Manual Parsing for various formats
   try {
-    // Split date and time
     const [dPart, tPart] = cleanStr.split(' ');
     if (!dPart) return new Date(0);
     
     let year, month, day;
     
-    // Handle Separators (- or /)
     const separator = dPart.includes('-') ? '-' : dPart.includes('/') ? '/' : null;
     
     if (separator) {
         const parts = dPart.split(separator).map(Number);
         
-        // Heuristic: Year is usually > 31
         if (parts[0] > 31) {
-            // Format: YYYY-MM-DD
-            [year, month, day] = parts;
+            [year, month, day] = parts; // YYYY-MM-DD
         } else if (parts[2] > 31) {
-            // Format: DD-MM-YYYY or MM-DD-YYYY
-            // Ambiguity check: If parts[1] > 12, it's definitely MM (so DD-MM-YYYY)
-            // But standard is usually DD-MM-YYYY in this API.
-            [day, month, year] = parts;
+            [day, month, year] = parts; // DD-MM-YYYY
         } else {
-            // Ambiguous (e.g. 01-02-2024). Default to DD-MM-YYYY
-            [day, month, year] = parts;
+            [day, month, year] = parts; // Default
         }
     } else {
-        // No separator? Maybe 19990101?
         if (dPart.length === 8) {
              year = Number(dPart.substring(0, 4));
              month = Number(dPart.substring(4, 6));
@@ -76,7 +68,6 @@ const parseApiDate = (dateStr: string): Date => {
         }
     }
     
-    // Parse Time
     let hour = 0, min = 0, sec = 0;
     if (tPart) {
         const tParts = tPart.split(':').map(Number);
@@ -85,7 +76,6 @@ const parseApiDate = (dateStr: string): Date => {
         sec = tParts[2] || 0;
     }
 
-    // Validation
     if (month < 1 || month > 12 || day < 1 || day > 31) return new Date(0);
 
     return new Date(Date.UTC(year, month - 1, day, hour, min, sec));
@@ -100,7 +90,6 @@ const parseApiDate = (dateStr: string): Date => {
 const getCurrentDasha = (periods: any, targetDate: Date, level = 0): string | null => {
   if (!periods || typeof periods !== 'object') return null;
 
-  // Sort periods by start date to ensure we check them in order
   const entries = Object.entries(periods).map(([key, val]: [string, any]) => ({
       key,
       ...val,
@@ -111,23 +100,16 @@ const getCurrentDasha = (periods: any, targetDate: Date, level = 0): string | nu
   // Debug logs for top level
   if (level === 0) {
       console.log(`🔮 DASHA DEBUG: Target Date: ${targetDate.toISOString()}`);
-      if (entries.length > 0) {
-          console.log(`🔮 DASHA DEBUG: Sample Period [0]: ${entries[0].key} (${entries[0].startDate.toISOString()} - ${entries[0].endDate.toISOString()})`);
-          console.log(`🔮 DASHA DEBUG: Raw Start String: ${entries[0].start}`);
-      } else {
-          console.log("🔮 DASHA DEBUG: No periods found to check.");
-      }
   }
 
   for (const period of entries) {
-    // Buffer of 1 minute to handle boundary conditions
-    const buffer = 60000; 
-    if (targetDate.getTime() >= period.startDate.getTime() - buffer && 
-        targetDate.getTime() < period.endDate.getTime() + buffer) {
+    // Strict check: Target must be >= Start AND < End
+    if (targetDate.getTime() >= period.startDate.getTime() && 
+        targetDate.getTime() < period.endDate.getTime()) {
         
         let result = period.key;
         // Recursively find sub-periods
-        if (period.periods && level < 2) { 
+        if (period.periods && level < 3) { 
             const subResult = getCurrentDasha(period.periods, targetDate, level + 1);
             if (subResult) result += `/${subResult}`;
         }
@@ -135,21 +117,20 @@ const getCurrentDasha = (periods: any, targetDate: Date, level = 0): string | nu
     }
   }
   
-  // Fallback: If no exact match found at top level, try to find the closest one in the past
+  // Fallback: Find the period that encompasses the target date broadly if strict match fails
+  // Or if we are in a weird future/past offset
   if (level === 0) {
-      // Find the period that started most recently before targetDate
-      const lastStarted = entries.filter(p => p.startDate <= targetDate).pop();
-      if (lastStarted) {
-          console.log(`🔮 DASHA FALLBACK: No exact match. Using last started period: ${lastStarted.key}`);
-          let result = `${lastStarted.key} (Approx)`;
-           // Try to go deeper even on approx match
-           if (lastStarted.periods) {
-              const subResult = getCurrentDasha(lastStarted.periods, targetDate, level + 1);
-              if (subResult) result = `${lastStarted.key}/${subResult}*`;
+     console.warn("🔮 DASHA WARNING: No strict match found. Scanning for closest start...");
+     // Find the last period that started before now
+     const active = entries.filter(p => p.startDate <= targetDate).pop();
+     if (active) {
+          let result = `${active.key}`;
+           if (active.periods) {
+              const subResult = getCurrentDasha(active.periods, targetDate, level + 1);
+              if (subResult) result += `/${subResult}`;
            }
-          return result;
-      }
-      console.warn("🔮 DASHA WARNING: Date is out of range of all periods.");
+          return result + " (Est)";
+     }
   }
 
   return null;
@@ -176,7 +157,7 @@ export const astrologyService = {
         sec: '0',
         time_zone: params.timezone,
         varga: 'D1,D9',
-        nesting: '2',
+        nesting: '3', // Increased nesting for deeper Dasha
         infolevel: 'basic'
       });
 
@@ -196,14 +177,13 @@ export const astrologyService = {
         hour: now.getHours().toString(),
         min: now.getMinutes().toString(),
         sec: '0',
-        time_zone: params.timezone, // Using same timezone as user for now
-        varga: 'D1', // Only D1 needed for transits
+        time_zone: params.timezone,
+        varga: 'D1',
         nesting: '0',
         infolevel: 'basic'
       });
 
       const transitUrl = `${API_BASE}/api/calculate?${transitParams.toString()}`;
-      console.log("🔮 API REQUEST (Transit):", transitUrl);
       let transitData = null;
       try {
           const transitRes = await axios.get(transitUrl);
@@ -212,17 +192,31 @@ export const astrologyService = {
           console.warn("⚠️ Transit API Failed (Non-critical):", e);
       }
 
-      // Extract detailed data
+      // --- DATA EXTRACTION ---
       const planets = data.chart?.graha || {};
       const houses = data.chart?.bhava || {};
-      const ascendantNum = data.chart?.lagna?.Lg?.rashi;
-      const moonNum = planets.Mo?.rashi;
       
-      // Map Rashi Numbers to Names
+      // 1. GET ASCENDANT SIGN (From Bhava 1)
+      // IMPORTANT: The API defines Bhava 1's Rashi as the Ascendant Sign.
+      const ascendantNum = houses["1"]?.rashi;
       const ascendantName = RASHI_NAMES[ascendantNum] || `Sign #${ascendantNum}`;
+      const moonNum = planets.Mo?.rashi;
       const moonName = RASHI_NAMES[moonNum] || `Sign #${moonNum}`;
 
-      // Extract Nakshatra Info
+      // 2. CALCULATE HOUSES FOR PLANETS (Bhava-First Logic)
+      // Algorithm: House = (PlanetSign - AscendantSign + 1 + 12) % 12
+      // Adjustment: 1-based indexing means we simply subtract (Asc - 1) from Planet
+      const planetHouses: Record<string, number> = {};
+      
+      Object.entries(planets).forEach(([key, val]: [string, any]) => {
+         const planetSign = val.rashi;
+         // Calculate distance from Ascendant
+         let houseNum = (planetSign - ascendantNum + 1);
+         if (houseNum <= 0) houseNum += 12;
+         planetHouses[key] = houseNum;
+      });
+
+      // 3. Nakshatra Info
       const nakshatras = Object.entries(planets).reduce((acc: any, [key, val]: [string, any]) => {
         if (val.nakshatra) {
           acc[key] = {
@@ -234,7 +228,7 @@ export const astrologyService = {
         return acc;
       }, {});
 
-      // Calculate Current Dasha (Vimshottari)
+      // 4. Dasha Calculation
       const currentDasha = getCurrentDasha(data.dasha?.periods, now) || 'Unsynchronized';
       console.log("🔮 FINAL ACTIVE DASHA:", currentDasha);
 
@@ -244,10 +238,11 @@ export const astrologyService = {
           current_dasha: currentDasha, 
           all_planets: planets,
           houses: houses,
+          planet_houses: planetHouses, // Pass Calculated Houses
           nakshatras: nakshatras,
           isMoonChart: !!params.timeUnknown,
           raw_response: data,
-          transits: transitData // Pass transits to AI
+          transits: transitData
       };
     } catch (error: any) {
       console.error("API ERROR:", error);
