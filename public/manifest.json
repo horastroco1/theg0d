@@ -1,5 +1,5 @@
 {
-  "name": "theg0d",
+  "name": "theg0d | Cyber-Vedic AI",
   "short_name": "theg0d",
   "start_url": "/",
   "display": "standalone",
@@ -10,12 +10,14 @@
     {
       "src": "/icon-192x192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
       "src": "/icon-512x512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }

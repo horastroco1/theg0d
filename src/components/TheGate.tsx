@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
-import { Loader2, ArrowRight, MapPin, Calendar, User, Globe, Database, X, Key, Copy } from 'lucide-react';
+import { Loader2, ArrowRight, MapPin, Calendar, User, Globe, Database, X, Key, Copy, HelpCircle } from 'lucide-react';
 import { locationService, LocationData } from '@/services/locationService';
 import { supabase } from '@/lib/supabase';
 import { astrologyService } from '@/services/astrologyService';
@@ -19,6 +19,7 @@ export interface FormData {
   timezone: string;
   locationName: string;
   language?: string;
+  gender?: string; // ADDED GENDER
   chart_data?: any;
   identity_key?: string;
 }
@@ -48,6 +49,8 @@ export default function TheGate({ onSubmit }: TheGateProps) {
   const [selectedLocation, setSelectedLocation] = useState<LocationData | null>(null);
   const [isSearching, setIsSearching] = useState(false);
   
+  const [gender, setGender] = useState<string>(''); // GENDER STATE
+
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [detectedLang, setDetectedLang] = useState<string>('en');
@@ -57,6 +60,10 @@ export default function TheGate({ onSubmit }: TheGateProps) {
   const isRTL = detectedLang === 'fa' || detectedLang === 'ar' || detectedLang === 'he';
 
   const searchTimeout = useRef<NodeJS.Timeout | null>(null);
+  
+  // REFS FOR AUTO-FOCUS
+  const monthRef = useRef<HTMLInputElement>(null);
+  const yearRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const detectUserContext = async () => {
@@ -127,9 +134,23 @@ export default function TheGate({ onSubmit }: TheGateProps) {
 
   const handleDateChange = (field: 'd' | 'm' | 'y', val: string) => {
       const num = val.replace(/\D/g, '');
-      if (field === 'd' && num.length <= 2) setDay(num);
-      if (field === 'm' && num.length <= 2) setMonth(num);
-      if (field === 'y' && num.length <= 4) setYear(num);
+      
+      if (field === 'd') {
+          if (num.length <= 2) {
+              setDay(num);
+              // Auto-Jump Logic
+              if (num.length === 2) monthRef.current?.focus();
+          }
+      }
+      if (field === 'm') {
+          if (num.length <= 2) {
+              setMonth(num);
+              if (num.length === 2) yearRef.current?.focus();
+          }
+      }
+      if (field === 'y') {
+          if (num.length <= 4) setYear(num);
+      }
   };
 
   const validateAge = (y: number, m: number, d: number) => {
@@ -184,6 +205,7 @@ export default function TheGate({ onSubmit }: TheGateProps) {
                 timezone: user.timezone,
                 locationName: user.birth_place,
                 language: detectedLang,
+                gender: user.gender || 'unknown', // Load gender
                 chart_data: user.chart_data,
                 identity_key: user.identity_key
             });
@@ -228,7 +250,7 @@ export default function TheGate({ onSubmit }: TheGateProps) {
 
     const fullDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
 
-    if ((!time && !timeUnknown) || !selectedLocation) {
+    if ((!time && !timeUnknown) || !selectedLocation || !gender) {
       setError(t('err_fields'));
       setIsLoading(false);
       return;
@@ -265,6 +287,7 @@ export default function TheGate({ onSubmit }: TheGateProps) {
             latitude: selectedLocation.latitude,
             longitude: selectedLocation.longitude,
             timezone: timezoneOffset,
+            gender: gender, // Save Gender
             chart_data: chartData,
             identity_key: newIdentityKey // SAVE KEY
           }
@@ -311,6 +334,7 @@ export default function TheGate({ onSubmit }: TheGateProps) {
         timezone: timezoneOffset,
         locationName: selectedLocation!.name,
         language: detectedLang,
+        gender,
         chart_data: null, // We don't need to pass it here since we just saved it? Actually we should pass what we have.
         identity_key: generatedKey
       });
@@ -343,6 +367,9 @@ export default function TheGate({ onSubmit }: TheGateProps) {
         err_fields: { en: 'All fields required.', es: 'Campos requeridos.', fa: 'همه فیلدها الزامی است' },
         switch_login: { en: 'RETURNING SUBJECT?', es: '¿YA TIENES CUENTA?', fa: 'حساب کاربری دارید؟' },
         switch_new: { en: 'NEW IDENTITY?', es: '¿NUEVO USUARIO?', fa: 'کاربر جدید؟' },
+        gender_m: { en: 'Male', es: 'Hombre', fa: 'مرد' },
+        gender_f: { en: 'Female', es: 'Mujer', fa: 'زن' },
+        gender_o: { en: 'Other', es: 'Otro', fa: 'سایر' },
     };
     return dict[key]?.[detectedLang] || dict[key]?.['en'] || key;
   };
@@ -531,22 +558,27 @@ export default function TheGate({ onSubmit }: TheGateProps) {
                                             value={day} 
                                             onChange={e => handleDateChange('d', e.target.value)}
                                             placeholder="DD"
+                                            maxLength={2}
                                             className="ios-input w-1/3 min-w-[60px] text-center bg-black/50 border-white/10 focus:border-[#00FF41] text-white"
                                         />
                                         <input 
+                                            ref={monthRef} // REF
                                             type="tel" 
                                             pattern="[0-9]*"
                                             value={month} 
                                             onChange={e => handleDateChange('m', e.target.value)}
                                             placeholder="MM"
+                                            maxLength={2}
                                             className="ios-input w-1/3 min-w-[60px] text-center bg-black/50 border-white/10 focus:border-[#00FF41] text-white"
                                         />
                                         <input 
+                                            ref={yearRef} // REF
                                             type="tel" 
                                             pattern="[0-9]*"
                                             value={year} 
                                             onChange={e => handleDateChange('y', e.target.value)}
                                             placeholder="YYYY"
+                                            maxLength={4}
                                             className="ios-input w-1/3 min-w-[80px] text-center bg-black/50 border-white/10 focus:border-[#00FF41] text-white"
                                         />
                                     </div>
@@ -575,6 +607,26 @@ export default function TheGate({ onSubmit }: TheGateProps) {
                                             {isRTL ? "زمان نامشخص" : "TIME UNKNOWN"}
                                         </label>
                                     </div>
+                                </div>
+
+                                {/* GENDER SELECTOR */}
+                                <div className="flex gap-2">
+                                    {['male', 'female', 'other'].map((g) => (
+                                        <button
+                                            key={g}
+                                            type="button"
+                                            onClick={() => setGender(g)}
+                                            className={`flex-1 py-3 rounded-xl text-xs font-bold border transition-all ${
+                                                gender === g 
+                                                ? 'bg-[#00FF41] text-black border-[#00FF41] shadow-[0_0_15px_rgba(0,255,65,0.3)]' 
+                                                : 'bg-black/50 text-[#86868B] border-white/10 hover:border-white/30'
+                                            }`}
+                                        >
+                                            {g === 'male' && t('gender_m')}
+                                            {g === 'female' && t('gender_f')}
+                                            {g === 'other' && t('gender_o')}
+                                        </button>
+                                    ))}
                                 </div>
 
                                 {/* LOCATION INPUT */}

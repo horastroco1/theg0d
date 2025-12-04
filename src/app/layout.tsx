@@ -1,53 +1,65 @@
-import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
-import ErrorBoundary from "@/components/ErrorBoundary";
-import SystemMenu from "@/components/SystemMenu";
+import type { Metadata, Viewport } from 'next';
+import { Inter } from 'next/font/google';
+import './globals.css';
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
-export const metadata: Metadata = {
-  title: "theg0d | Cyber-Vedic Astrologer",
-  description: "Analyze your fate with the precision of a machine god.",
-  manifest: "/manifest.json",
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "black-translucent",
-    title: "theg0d",
-  },
-};
+const inter = Inter({ subsets: ['latin'] });
 
 export const viewport: Viewport = {
-  width: "device-width",
+  width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: "#000000",
+  themeColor: '#000000',
+};
+
+export const metadata: Metadata = {
+  title: 'theg0d | Cyber-Vedic AI Oracle',
+  description: 'Decrypt your destiny with theg0d. The world\'s first Cyber-Vedic AI astrologer. Encrypted. Precise. Divine.',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'theg0d',
+  },
+  openGraph: {
+    title: 'theg0d | Cyber-Vedic AI Oracle',
+    description: 'Your fate is source code. Decrypt it now.',
+    url: 'https://theg0d.com',
+    siteName: 'theg0d',
+    images: [
+      {
+        url: '/og-image.jpg', // We will need to add this image
+        width: 1200,
+        height: 630,
+        alt: 'theg0d interface',
+      },
+    ],
+    locale: 'en_US',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'theg0d',
+    description: 'Cyber-Vedic Intelligence Protocol.',
+    images: ['/og-image.jpg'],
+  },
+  icons: {
+    icon: '/icon-192x192.png',
+    shortcut: '/icon-192x192.png',
+    apple: '/icon-192x192.png',
+  },
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-black text-white`}
-      >
-        <div className="noise-overlay"></div>
-        <ErrorBoundary>
-            <SystemMenu />
-            {children}
-        </ErrorBoundary>
+      <body className={`${inter.className} bg-black text-white overflow-hidden overscroll-none`}>
+        <div className="noise-overlay pointer-events-none fixed inset-0 z-[100] opacity-[0.03] mix-blend-overlay"></div>
+        {children}
       </body>
     </html>
   );
