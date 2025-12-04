@@ -5,48 +5,59 @@ import path from 'path';
 // Load env vars from .env.local
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 
+// This now expects an OpenRouter Key (sk-or-...)
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY;
-const BASE_URL = `https://generativelanguage.googleapis.com/v1beta/models`;
+const BASE_URL = `https://openrouter.ai/api/v1/chat/completions`;
 
-async function testGemini() {
-  console.log("🧪 STARTING GEMINI API TEST...");
+async function testOpenRouter() {
+  console.log("🧪 STARTING OPENROUTER API TEST...");
 
   if (!GEMINI_API_KEY) {
     console.error("❌ CRITICAL: GEMINI_API_KEY is missing in .env.local");
     process.exit(1);
   }
 
-  console.log(`🔑 Key found: ${GEMINI_API_KEY.substring(0, 5)}...`);
-
-  const model = 'gemini-1.5-flash';
-  const url = `${BASE_URL}/${model}:generateContent?key=${GEMINI_API_KEY}`;
-  
-  const payload = {
-    contents: [{ role: 'user', parts: [{ text: "System Status Check. Reply with 'ONLINE'." }] }]
-  };
+  console.log(`🔑 Key found: ${GEMINI_API_KEY.substring(0, 8)}...`);
 
   try {
-    console.log(`📡 Sending request to [${model}]...`);
-    const response = await axios.post(url, payload, {
-      headers: { 'Content-Type': 'application/json' }
-    });
+    console.log(`📡 Listing available models...`);
+    const listResponse = await axios.get('https://openrouter.ai/api/v1/models');
+    const models = listResponse.data?.data?.filter((m: any) => m.id.includes('gemini')).map((m: any) => m.id) || [];
+    console.log(`✅ Available Gemini Models:`);
+    models.forEach((m: string) => console.log(`   - ${m}`));
+    
+    const validModel = models[0] || 'google/gemini-2.0-flash-exp:free';
+    console.log(`👉 Selecting: ${validModel}`);
+    
+    // ... continue with test using validModel
+    const payload = {
+        model: validModel,
+        messages: [
+            { role: 'user', content: "System Status Check. Reply with 'ONLINE'." }
+        ]
+    };
 
-    const reply = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    console.log(`📡 Sending request to [${validModel}] via OpenRouter...`);
+    const response = await axios.post(BASE_URL, payload, {
+      headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${GEMINI_API_KEY}`,
+          'HTTP-Referer': 'https://localhost:3000',
+          'X-Title': 'Test Script'
+      }
+    });
+    
+    // ... rest of success handling
+    const reply = response.data?.choices?.[0]?.message?.content;
     if (reply) {
       console.log(`✅ SUCCESS! AI Responded: "${reply.trim()}"`);
-    } else {
-      console.warn("⚠️ Response empty but no error thrown:", response.data);
     }
 
   } catch (error: any) {
-    console.error("❌ API ERROR:");
-    if (error.response) {
-        console.error(`   Status: ${error.response.status}`);
-        console.error(`   Data: ${JSON.stringify(error.response.data, null, 2)}`);
-    } else {
-        console.error(`   Message: ${error.message}`);
-    }
+      // ... error handling
+      console.error("❌ API ERROR:", error.message);
+      if (error.response) console.error("Data:", error.response.data);
   }
 }
 
-testGemini();
+testOpenRouter();

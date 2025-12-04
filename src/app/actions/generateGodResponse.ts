@@ -4,8 +4,9 @@ import axios from 'axios';
 import { GOD_SYSTEM_PROMPT, FALLBACK_MESSAGES, GOD_PROTOCOL } from '@/lib/godRules';
 
 // Support both GEMINI_API_KEY (Server) and NEXT_PUBLIC_GEMINI_API_KEY (Legacy/Client fallback if misconfigured)
+// NOTE: Semantically this is now the OPENROUTER_API_KEY, but we keep the name to avoid breaking existing .env setups
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY;
-const BASE_URL = `https://generativelanguage.googleapis.com/v1beta/models`;
+const BASE_URL = `https://openrouter.ai/api/v1/chat/completions`;
 
 export interface ChatMessage {
   role: string;
@@ -22,14 +23,14 @@ function getRandomFallback() {
   return FALLBACK_MESSAGES[Math.floor(Math.random() * FALLBACK_MESSAGES.length)];
 }
 
-function handleGeminiError(error: any) {
+function handleApiError(error: any) {
   if (error.response) {
-    console.error("🔴 GEMINI API ERROR DETAILS:", JSON.stringify(error.response.data, null, 2));
-    console.error("🔴 GEMINI STATUS:", error.response.status);
+    console.error("🔴 AI API ERROR DETAILS:", JSON.stringify(error.response.data, null, 2));
+    console.error("🔴 AI STATUS:", error.response.status);
   } else if (error.request) {
-    console.error("🔴 GEMINI NETWORK ERROR (No Response):", error.request);
+    console.error("🔴 AI NETWORK ERROR (No Response):", error.request);
   } else {
-    console.error("🔴 GEMINI CLIENT ERROR:", error.message);
+    console.error("🔴 AI CLIENT ERROR:", error.message);
   }
 }
 
@@ -39,7 +40,7 @@ export async function generateGodResponse(
 ): Promise<string> {
   // LOGGING FOR DEBUGGING
   const keyStatus = GEMINI_API_KEY ? `Present (Starts with ${GEMINI_API_KEY.substring(0, 4)}...)` : 'MISSING';
-  console.log(`🔮 AI ENGINE: Key Status: ${keyStatus}`);
+  console.log(`🔮 AI ENGINE (OpenRouter): Key Status: ${keyStatus}`);
 
   if (!GEMINI_API_KEY) {
     console.error("CRITICAL: GEMINI_API_KEY is missing in environment variables.");
@@ -47,18 +48,15 @@ export async function generateGodResponse(
     return "SYSTEM ERROR: NEURAL LINK NOT FOUND. CHECK SERVER CONFIG.";
   }
 
-  // DYNAMIC MODEL SWITCHING
-  const initialModel = context.tier === 'premium' ? 'gemini-1.5-pro' : 'gemini-1.5-flash';
+  // DYNAMIC MODEL SWITCHING - Using OpenRouter Model IDs
+  // Standard: Gemini 2.0 Flash Lite (Fast/Cheap)
+  // Premium: Gemini 2.0 Flash (Smart/Powerful)
+  const initialModel = context.tier === 'premium' ? 'google/gemini-2.0-flash-001' : 'google/gemini-2.0-flash-lite-001';
   console.log(`🔮 AI ENGINE: Using Model: ${initialModel}`);
   
   const generate = async (modelName: string) => {
-      const url = `${BASE_URL}/${modelName}:generateContent?key=${GEMINI_API_KEY}`;
-      // Format history for Gemini API
-      const historyContents = chatHistory.map(msg => ({
-        role: msg.role === 'god' ? 'model' : 'user',
-        parts: [{ text: msg.text }]
-      }));
-  
+      const url = BASE_URL;
+      
       // Parse chart data
       const { horoscopeData, userLocation } = context;
       const planets = horoscopeData?.all_planets || {};
@@ -146,36 +144,53 @@ export async function generateGodResponse(
            Do NOT give the full solution for free. Tease the answer, then lock it.
       `;
   
+      // Construct messages for OpenRouter (OpenAI Format)
+      const messages = [
+          { role: 'system', content: systemContext },
+          ...chatHistory.map(msg => ({
+              role: msg.role === 'god' ? 'assistant' : 'user',
+              content: msg.text
+          }))
+      ];
+
       const payload = {
-        contents: [
-          { role: 'user', parts: [{ text: systemContext }] },
-          ...historyContents
-        ]
+        model: modelName,
+        messages: messages,
+        temperature: 0.7,
+        max_tokens: 150
       };
   
       console.log(`🔮 AI ENGINE (Server): Processing request for ${userLocation} using [${modelName}]...`);
-      return await axios.post(url, payload, { headers: { 'Content-Type': 'application/json' } });
+      
+      return await axios.post(url, payload, { 
+          headers: { 
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${GEMINI_API_KEY}`,
+              'HTTP-Referer': 'https://theg0d.com', // Required by OpenRouter
+              'X-Title': 'theg0d' // Required by OpenRouter
+          } 
+      });
   };
 
   try {
     // Try Primary Model
     const response = await generate(initialModel);
-    if (response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
-      return response.data.candidates[0].content.parts[0].text;
+    if (response.data?.choices?.[0]?.message?.content) {
+      return response.data.choices[0].message.content;
     }
-    console.warn("⚠️ Gemini Response Empty (Primary). Retrying with Flash...");
+    console.warn("⚠️ AI Response Empty (Primary). Retrying with Flash...");
     throw new Error("Empty Response");
 
   } catch (error: any) {
-    handleGeminiError(error);
+    handleApiError(error);
     
     // Fallback Strategy: If Pro fails, try Flash
-    if (initialModel !== 'gemini-1.5-flash') {
-        console.log("🔄 FALLBACK: Switching to Gemini 1.5 Flash...");
+    if (initialModel !== 'google/gemini-2.0-flash-lite-001') {
+        console.log("🔄 FALLBACK: Switching to Gemini 2.0 Flash Lite (OpenRouter)...");
         try {
-            const fallbackResponse = await generate('gemini-1.5-flash');
-            if (fallbackResponse.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
-                return fallbackResponse.data.candidates[0].content.parts[0].text;
+            const fallbackResponse = await generate('google/gemini-2.0-flash-lite-001');
+            if (fallbackResponse.data?.choices?.[0]?.message?.content) {
+                return fallbackResponse.data.choices[0].message.content;
             }
         } catch (fallbackError) {
             console.error("🔴 FALLBACK FAILED:", fallbackError);
