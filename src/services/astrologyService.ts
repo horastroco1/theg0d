@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { dashaEngine } from '@/lib/dashaEngine'; // IMPORT ENGINE
 
 const API_BASE = 'https://my-astrology-api-production.up.railway.app';
 
@@ -29,125 +30,6 @@ const RASHI_NAMES = [
   "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"
 ];
 
-// Helper to extract date components from API string with high robustness
-const parseApiDate = (dateStr: string): Date => {
-  if (!dateStr || typeof dateStr !== 'string') return new Date(0);
-
-  const cleanStr = dateStr.trim();
-  
-  // 1. Try standard Date parse (ISO, etc.)
-  const stdDate = new Date(cleanStr.replace(' ', 'T'));
-  if (!isNaN(stdDate.getTime())) return stdDate;
-
-  // 2. Manual Parsing for various formats
-  try {
-    const [dPart, tPart] = cleanStr.split(' ');
-    if (!dPart) return new Date(0);
-    
-    let year, month, day;
-    
-    const separator = dPart.includes('-') ? '-' : dPart.includes('/') ? '/' : null;
-    
-    if (separator) {
-        const parts = dPart.split(separator).map(Number);
-        
-        if (parts[0] > 31) {
-            [year, month, day] = parts; // YYYY-MM-DD
-        } else if (parts[2] > 31) {
-            [day, month, year] = parts; // DD-MM-YYYY
-        } else {
-            [day, month, year] = parts; // Default
-        }
-    } else {
-        if (dPart.length === 8) {
-             year = Number(dPart.substring(0, 4));
-             month = Number(dPart.substring(4, 6));
-             day = Number(dPart.substring(6, 8));
-        } else {
-            return new Date(0);
-        }
-    }
-    
-    let hour = 0, min = 0, sec = 0;
-    if (tPart) {
-        const tParts = tPart.split(':').map(Number);
-        hour = tParts[0] || 0;
-        min = tParts[1] || 0;
-        sec = tParts[2] || 0;
-    }
-
-    if (month < 1 || month > 12 || day < 1 || day > 31) return new Date(0);
-
-    return new Date(Date.UTC(year, month - 1, day, hour, min, sec));
-
-  } catch (e) {
-    console.warn("Date Parse Error:", e);
-    return new Date(0);
-  }
-};
-
-// Recursive function to find the active Dasha period for the current date
-const getCurrentDasha = (periods: any, targetDate: Date, level = 0): string | null => {
-  if (!periods || typeof periods !== 'object') return null;
-
-  const entries = Object.entries(periods).map(([key, val]: [string, any]) => ({
-      key,
-      ...val,
-      startDate: parseApiDate(val.start),
-      endDate: parseApiDate(val.end)
-  })).sort((a, b) => a.startDate.getTime() - b.startDate.getTime());
-
-  // Debug logs for top level
-  if (level === 0) {
-      console.log(`🔮 DASHA DEBUG: Target Date: ${targetDate.toISOString()}`);
-      console.log(`🔮 DASHA RANGES SCAN:`);
-      entries.forEach(e => {
-          console.log(`   - ${e.key}: ${e.startDate.toISOString()} -> ${e.endDate.toISOString()}`);
-      });
-  }
-
-  for (const period of entries) {
-    // Strict check: Target must be >= Start AND < End
-    if (targetDate.getTime() >= period.startDate.getTime() && 
-        targetDate.getTime() < period.endDate.getTime()) {
-        
-        let result = period.key;
-        // Recursively find sub-periods
-        if (period.periods && level < 3) { 
-            const subResult = getCurrentDasha(period.periods, targetDate, level + 1);
-            if (subResult) result += `/${subResult}`;
-        }
-        return result;
-    }
-  }
-  
-  // Fallback: Find the period that encompasses the target date broadly if strict match fails
-  // Or if we are in a weird future/past offset
-  if (level === 0) {
-     console.warn("🔮 DASHA WARNING: No strict match found. Scanning for closest start...");
-     
-     // Fallback 1: Try the FIRST period in the list (closest to now but in future?)
-     if (entries.length > 0) {
-         // If all dates are in the future (e.g., 2100+), just take the first one to show *something*
-         // Or find the one closest to the target date
-         
-         // Sort by distance to targetDate
-         const closest = entries.slice().sort((a, b) => {
-             const distA = Math.abs(a.startDate.getTime() - targetDate.getTime());
-             const distB = Math.abs(b.startDate.getTime() - targetDate.getTime());
-             return distA - distB;
-         })[0];
-         
-         if (closest) {
-             console.log(`🔮 DASHA FALLBACK: Using closest period: ${closest.key}`);
-             return `${closest.key} (Est)`;
-         }
-     }
-  }
-
-  return null;
-};
-
 export const astrologyService = {
   calculateHoroscope: async (params: AstrologyParams): Promise<HoroscopeData> => {
     try {
@@ -157,7 +39,7 @@ export const astrologyService = {
         [hour, min] = params.time.split(':').map(Number);
       }
 
-      // 1. BIRTH CHART REQUEST
+      // 1. BIRTH CHART REQUEST - REVERTED TO BASIC INFOLEVEL
       const queryParams = new URLSearchParams({
         latitude: params.latitude.toString(),
         longitude: params.longitude.toString(),
@@ -169,17 +51,14 @@ export const astrologyService = {
         sec: '0',
         time_zone: params.timezone,
         varga: 'D1,D9',
-        nesting: '3', // Increased nesting for deeper Dasha
-        infolevel: 'advanced'
+        nesting: '2', 
+        infolevel: 'basic'
       });
 
       const url = `${API_BASE}/api/calculate?${queryParams.toString()}`;
       console.log("🔮 API REQUEST (Birth):", url);
       const response = await axios.get(url);
       const data = response.data;
-
-      // DEBUG: LOG DASHA STRUCTURE
-      console.log("🔮 RAW DASHA DATA:", JSON.stringify(data.dasha, null, 2));
 
       // 2. TRANSIT CHART REQUEST (Current Date)
       const now = new Date();
@@ -243,9 +122,22 @@ export const astrologyService = {
         return acc;
       }, {});
 
-      // 4. Dasha Calculation
-      const currentDasha = getCurrentDasha(data.dasha?.periods, now) || 'Unsynchronized';
-      console.log("🔮 FINAL ACTIVE DASHA:", currentDasha);
+      // 4. CLIENT-SIDE DASHA CALCULATION (The Ultimate Fix)
+      // We ignore the API Dasha and calculate it locally using Moon Longitude
+      let currentDasha = 'Unsynchronized';
+      try {
+          const moonLongitude = planets.Mo?.longitude;
+          if (typeof moonLongitude === 'number') {
+              // Parse birth date correctly
+              const birthDate = new Date(Date.UTC(year, month - 1, day, hour, min));
+              currentDasha = dashaEngine.calculate(moonLongitude, birthDate);
+              console.log(`🔮 CALCULATED DASHA (Client): ${currentDasha}`);
+          } else {
+              console.error("❌ DASHA ERROR: Moon Longitude missing from API");
+          }
+      } catch (e) {
+          console.error("❌ DASHA ENGINE ERROR:", e);
+      }
 
       return {
           ascendant: ascendantName,
