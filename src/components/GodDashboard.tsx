@@ -90,6 +90,7 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
   
   // NEW STATE FOR OFFERINGS
   const [activeSkin, setActiveSkin] = useState(userData.active_skin || 'default');
+  const [activeTab, setActiveTab] = useState<'STATUS' | 'ARCHIVES' | 'OFFERINGS'>('STATUS');
 
   // DYNAMIC SKINNING ENGINE
   useEffect(() => {
@@ -177,6 +178,15 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
       const lang = userData.language || locationService.detectUserLanguage();
       setUserLang(lang);
       document.dir = isRTL ? 'rtl' : 'ltr';
+      
+      // Explicitly set font on body for Vazirmatn support
+      if (isRTL) {
+          document.body.style.fontFamily = 'var(--font-vazir), sans-serif';
+          document.documentElement.lang = lang;
+      } else {
+          document.body.style.fontFamily = '';
+          document.documentElement.lang = 'en';
+      }
   }, [userData, isRTL]);
 
   const finalUserData = userData || {
@@ -581,7 +591,7 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
       {/* --- INPUT (MONOLITH) --- */}
       <div className="p-6 md:p-12 z-40 w-full max-w-5xl mx-auto">
         <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-4 items-center">
-             <button onClick={() => setShowPaymentModal({ show: true, type: 'DEEP_SCAN' })} className="flex items-center gap-2 px-4 py-2 border border-white/10 hover:border-[#FFD700]/50 transition-all rounded-none group relative overflow-hidden">
+             <button onClick={() => setShowPaymentModal({ show: true, type: 'DEEP_SCAN' })} className="flex-shrink-0 flex items-center gap-2 px-4 py-2 border border-white/10 hover:border-[#FFD700]/50 transition-all rounded-none group relative overflow-hidden whitespace-nowrap">
                 <div className="absolute inset-0 bg-[#FFD700]/10 translate-y-full group-hover:translate-y-0 transition-transform duration-500"></div>
                 <Lock className="w-3 h-3 text-[#FFD700] group-hover:scale-110 transition-transform" /> 
                 <span className="text-[10px] tracking-[0.2em] uppercase text-white/70 group-hover:text-white relative z-10">{t('deep_scan')}</span>

@@ -48,6 +48,12 @@ body {
   text-align: right;
 }
 
+/* NUCLEAR TYPOGRAPHY FIX FOR PERSIAN */
+/* Removes all letter-spacing in RTL mode to prevent disconnected letters */
+[dir="rtl"] * {
+    letter-spacing: 0 !important;
+}
+
 /* --- THE VOID UTILITIES --- */
 
 /* Glass Panel (No Noise, Just Blur) */
