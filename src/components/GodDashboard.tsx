@@ -86,23 +86,71 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
   const [xp, setXp] = useState(userData.xp || 0);
   const [level, setLevel] = useState(userData.level || 0);
   const [showPaymentModal, setShowPaymentModal] = useState<{show: boolean, type: PaymentType | null}>({ show: false, type: null });
-  // NEW STATE FOR GRIMOIRE
-  const [activeTab, setActiveTab] = useState<'STATUS' | 'ARCHIVES'>('STATUS');
+  // NEW STATE FOR OFFERINGS
+  const [activeSkin, setActiveSkin] = useState(userData.active_skin || 'default');
+
+  // DYNAMIC SKINNING ENGINE
+  useEffect(() => {
+      // Define skins map (In production this would fetch from DB 'skins' table)
+      const SKINS: Record<string, any> = {
+          'default': { bg: '#050505', text: '#F5F5F7', accent: '#FFD700' },
+          'nebula_purple': { bg: '#1a0b2e', text: '#e0d0ff', accent: '#b388ff' },
+          'blood_moon': { bg: '#1a0505', text: '#ffcccc', accent: '#ff0000' },
+          'matrix_green': { bg: '#000500', text: '#00ff41', accent: '#00ff41' }
+      };
+
+      const theme = SKINS[activeSkin] || SKINS['default'];
+      
+      // Apply CSS Variables to Root
+      const root = document.documentElement;
+      root.style.setProperty('--bg-void', theme.bg);
+      root.style.setProperty('--color-starlight', theme.text);
+      root.style.setProperty('--accent-gold', theme.accent);
+      
+      // Force body update
+      document.body.style.backgroundColor = theme.bg;
+      document.body.style.color = theme.text;
+
+  }, [activeSkin]);
   const [savedScans, setSavedScans] = useState<any[]>([]);
   const [selectedScan, setSelectedScan] = useState<any | null>(null);
+  const [skins, setSkins] = useState<any[]>([]); // Store for fetchable skins
 
   useEffect(() => {
-      if (showProfileModal && activeTab === 'ARCHIVES') {
-          const fetchScans = async () => {
-              const supabase = createClient();
-              const { data } = await supabase
-                  .from('saved_scans')
-                  .select('*')
-                  .eq('user_key', finalUserData.identity_key)
-                  .order('created_at', { ascending: false });
-              if (data) setSavedScans(data);
-          };
-          fetchScans();
+      if (showProfileModal) {
+          if (activeTab === 'ARCHIVES') {
+              const fetchScans = async () => {
+                  const supabase = createClient();
+                  const { data } = await supabase
+                      .from('saved_scans')
+                      .select('*')
+                      .eq('user_key', finalUserData.identity_key)
+                      .order('created_at', { ascending: false });
+                  if (data) setSavedScans(data);
+              };
+              fetchScans();
+          }
+          if (activeTab === 'OFFERINGS') {
+               const fetchSkins = async () => {
+                  const supabase = createClient();
+                  // 1. Get All Skins
+                  const { data: allSkins } = await supabase.from('skins').select('*');
+                  // 2. Get User Owned Skins
+                  const { data: mySkins } = await supabase.from('user_skins').select('skin_id').eq('user_key', finalUserData.identity_key);
+                  
+                  const ownedIds = new Set(mySkins?.map(s => s.skin_id) || []);
+                  // Add 'default' as always owned
+                  ownedIds.add('default');
+
+                  const formattedSkins = allSkins?.map(s => ({
+                      ...s,
+                      owned: ownedIds.has(s.id)
+                  })) || [];
+                  
+                  setSkins(formattedSkins);
+               };
+               fetchSkins();
+          }
       }
   }, [showProfileModal, activeTab]);
   const [showKarmicModal, setShowKarmicModal] = useState(false); 
@@ -717,18 +765,24 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
               <button onClick={() => setShowProfileModal(false)} className="absolute top-6 right-6 text-white/30 hover:text-white"><X className="w-5 h-5" /></button>
               
               {/* TABS */}
-              <div className="flex justify-center gap-8 mb-8 border-b border-white/5 pb-4">
+              <div className="flex justify-center gap-6 mb-8 border-b border-white/5 pb-4">
                   <button 
                       onClick={() => { setActiveTab('STATUS'); setSelectedScan(null); }}
-                      className={`text-xs uppercase tracking-[0.2em] transition-all ${activeTab === 'STATUS' ? 'text-white font-bold' : 'text-white/30 hover:text-white'}`}
+                      className={`text-[10px] uppercase tracking-[0.2em] transition-all ${activeTab === 'STATUS' ? 'text-white font-bold' : 'text-white/30 hover:text-white'}`}
                   >
                       Status
                   </button>
                   <button 
                       onClick={() => setActiveTab('ARCHIVES')}
-                      className={`text-xs uppercase tracking-[0.2em] transition-all ${activeTab === 'ARCHIVES' ? 'text-white font-bold' : 'text-white/30 hover:text-white'}`}
+                      className={`text-[10px] uppercase tracking-[0.2em] transition-all ${activeTab === 'ARCHIVES' ? 'text-white font-bold' : 'text-white/30 hover:text-white'}`}
                   >
                       Archives
+                  </button>
+                  <button 
+                      onClick={() => setActiveTab('OFFERINGS')}
+                      className={`text-[10px] uppercase tracking-[0.2em] transition-all ${activeTab === 'OFFERINGS' ? 'text-[#FFD700] font-bold animate-pulse' : 'text-white/30 hover:text-[#FFD700]'}`}
+                  >
+                      Offerings
                   </button>
               </div>
 
@@ -770,6 +824,48 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
                             <LogOut className="w-4 h-4" /> {t('terminate_session')}
                         </button>
                     </div>
+                  </div>
+              ) : activeTab === 'OFFERINGS' ? (
+                  // OFFERINGS TAB (STORE)
+                  <div className="grid grid-cols-2 gap-4">
+                      {skins.map((skin) => (
+                          <div key={skin.id} className={`bg-white/5 border ${activeSkin === skin.id ? 'border-[#FFD700]' : 'border-white/10'} p-4 relative group hover:bg-white/10 transition-all`}>
+                               {/* PREVIEW CIRCLE */}
+                               <div className="w-8 h-8 rounded-full mb-3 border border-white/20 shadow-lg" style={{ backgroundColor: skin.css_vars.bg }}>
+                                   <div className="w-full h-full rounded-full flex items-center justify-center">
+                                       <div className="w-2 h-2 rounded-full" style={{ backgroundColor: skin.css_vars.accent }}></div>
+                                   </div>
+                               </div>
+                               
+                               <h4 className="text-xs font-bold text-white uppercase tracking-wider mb-1">{skin.name}</h4>
+                               <p className="text-[9px] text-white/40 font-mono leading-tight mb-4 min-h-[2.5em]">{skin.description}</p>
+                               
+                               {skin.owned ? (
+                                   <button 
+                                       onClick={async () => {
+                                           setActiveSkin(skin.id);
+                                           const supabase = createClient();
+                                           await supabase.from('users').update({ active_skin: skin.id }).eq('identity_key', finalUserData.identity_key);
+                                       }}
+                                       disabled={activeSkin === skin.id}
+                                       className={`w-full py-2 text-[9px] uppercase tracking-[0.2em] font-bold border transition-all ${
+                                           activeSkin === skin.id 
+                                           ? 'bg-[#FFD700] text-black border-[#FFD700]' 
+                                           : 'border-white/20 hover:bg-white text-white hover:text-black'
+                                       }`}
+                                   >
+                                       {activeSkin === skin.id ? 'EQUIPPED' : 'EQUIP'}
+                                   </button>
+                               ) : (
+                                   <button 
+                                       onClick={() => alert("Payment Integration Pending: Will connect to PaymentService in Phase 24.")}
+                                       className="w-full py-2 text-[9px] uppercase tracking-[0.2em] font-bold border border-[#FFD700]/50 text-[#FFD700] hover:bg-[#FFD700] hover:text-black transition-all"
+                                   >
+                                       UNLOCK ${skin.price_usd}
+                                   </button>
+                               )}
+                          </div>
+                      ))}
                   </div>
               ) : (
                   // ARCHIVES TAB
