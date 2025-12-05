@@ -12,8 +12,8 @@
   --text-secondary: #86868B; /* Apple Grey */
   --glass-border: rgba(255, 255, 255, 0.08);
   
-  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  --font-mono: "SF Mono", "Menlo", "Monaco", "Courier New", monospace;
+  --font-sans: "Geist", -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: "Geist Mono", "SF Mono", "Menlo", "Monaco", "Courier New", monospace;
   
   --ease-apple: cubic-bezier(0.32, 0.72, 0, 1); /* Smooth iOS easing */
 }
@@ -29,6 +29,7 @@
   --font-mono: var(--font-mono);
   
   --animate-float: float 6s ease-in-out infinite;
+  --animate-blink: blink 1s step-end infinite;
 }
 
 body {
@@ -128,4 +129,13 @@ body {
   0% { transform: translateY(0px); }
   50% { transform: translateY(-10px); }
   100% { transform: translateY(0px); }
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.cursor-blink {
+  animation: blink 1s step-end infinite;
 }

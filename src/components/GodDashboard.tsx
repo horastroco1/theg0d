@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Activity, Coins, X, Sparkles, Wifi, Battery, Zap, Lock, Copy, Share2 } from 'lucide-react';
+import { Send, Activity, Coins, X, Sparkles, Wifi, Battery, Zap, Lock, Copy, Share2, Terminal } from 'lucide-react';
 import { astrologyService, HoroscopeData } from '@/services/astrologyService';
 import { generateGodResponse } from '@/app/actions/generateGodResponse';
 import { security } from '@/lib/security';
@@ -10,7 +10,6 @@ import { paymentService } from '@/services/paymentService';
 import { createClient } from '@/lib/supabase';
 import { cryptoService } from '@/lib/crypto'; 
 import { audioService } from '@/services/audioService'; // IMPORT AUDIO
-
 import { locationService } from '@/services/locationService';
 
 interface GodDashboardProps { userData: any; }
@@ -25,95 +24,115 @@ type PaymentType = 'RECHARGE' | 'PATCH' | 'DEEP_SCAN';
 
 const generateId = () => typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).substr(2);
 
+// Typewriter Component for God's Messages
+const TypewriterEffect = ({ text, onComplete }: { text: string, onComplete?: () => void }) => {
+  const [displayedText, setDisplayedText] = useState('');
+  const index = useRef(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setDisplayedText((prev) => prev + text.charAt(index.current));
+      index.current++;
+      if (index.current >= text.length) {
+        clearInterval(interval);
+        if (onComplete) onComplete();
+      }
+    }, 25); // Speed: 25ms per char
+    return () => clearInterval(interval);
+  }, [text, onComplete]);
+
+  return <span>{displayedText}</span>;
+};
+
 // Translation dictionary for UI
 const UI_TEXT: Record<string, any> = {
   en: {
     init: "Initializing Neural Link...",
     connected: "Connected. Subject:",
     listening: "I am listening. What is your query?",
-    placeholder: "Encrypted Input...",
-    placeholderPremium: "DEEP SCAN ACTIVE. ASK A COMPLEX QUESTION.",
-    recharge: "RECHARGE REQUIRED"
+    placeholder: "> Enter Command...",
+    placeholderPremium: "> DEEP SCAN PROTOCOL ACTIVE...",
+    recharge: "ENERGY DEPLETED"
   },
   es: {
     init: "Iniciando Enlace Neuronal...",
     connected: "Conectado. Sujeto:",
     listening: "Te escucho. ¿Cuál es tu consulta?",
-    placeholder: "Entrada Cifrada...",
-    placeholderPremium: "ESCANEO PROFUNDO. PREGUNTA ALGO COMPLEJO.",
-    recharge: "RECARGA REQUERIDA"
+    placeholder: "> Comando...",
+    placeholderPremium: "> ESCANEO PROFUNDO ACTIVO...",
+    recharge: "ENERGÍA AGOTADA"
   },
   fr: {
     init: "Initialisation du lien neuronal...",
     connected: "Connecté. Sujet:",
     listening: "Je vous écoute. Quelle est votre requête ?",
-    placeholder: "Entrée chiffrée...",
-    placeholderPremium: "SCAN PROFOND ACTIF. POSEZ UNE QUESTION COMPLEXE.",
-    recharge: "RECHARGE REQUISE"
+    placeholder: "> Commande...",
+    placeholderPremium: "> SCAN PROFOND ACTIF...",
+    recharge: "ÉNERGIE ÉPUISÉE"
   },
   de: {
     init: "Initialisiere Neuronalen Link...",
     connected: "Verbunden. Subjekt:",
     listening: "Ich höre. Was ist Ihre Anfrage?",
-    placeholder: "Verschlüsselte Eingabe...",
-    placeholderPremium: "TIEFENSCAN AKTIV. STELLEN SIE EINE KOMPLEXE FRAGE.",
-    recharge: "AUFLADUNG ERFORDERLICH"
+    placeholder: "> Befehl eingeben...",
+    placeholderPremium: "> TIEFENSCAN AKTIV...",
+    recharge: "ENERGIE LEER"
   },
   pt: {
     init: "Inicializando Link Neural...",
     connected: "Conectado. Sujeito:",
     listening: "Estou ouvindo. Qual é a sua consulta?",
-    placeholder: "Entrada Criptografada...",
-    placeholderPremium: "VARREDURA PROFUNDA ATIVA. FAÇA UMA PERGUNTA COMPLEXA.",
-    recharge: "RECARGA NECESSÁRIA"
+    placeholder: "> Comando...",
+    placeholderPremium: "> VARREDURA PROFUNDA ATIVA...",
+    recharge: "ENERGIA ESGOTADA"
   },
   ja: {
     init: "ニューラルリンクを初期化中...",
     connected: "接続完了。対象:",
     listening: "聞いています。質問は何ですか？",
-    placeholder: "暗号化された入力...",
-    placeholderPremium: "ディープスキャン有効。複雑な質問をしてください。",
-    recharge: "リチャージが必要です"
+    placeholder: "> コマンド入力...",
+    placeholderPremium: "> ディープスキャン有効...",
+    recharge: "エネルギー切れ"
   },
   zh: {
     init: "正在初始化神经链接...",
     connected: "已连接。主体：",
     listening: "我在听。你的查询是什么？",
-    placeholder: "加密输入...",
-    placeholderPremium: "深度扫描已激活。请提出复杂问题。",
-    recharge: "需要充值"
+    placeholder: "> 输入指令...",
+    placeholderPremium: "> 深度扫描已激活...",
+    recharge: "能量耗尽"
   },
   ru: {
     init: "Инициализация нейронной связи...",
     connected: "Подключено. Субъект:",
     listening: "Я слушаю. Каков ваш запрос?",
-    placeholder: "Зашифрованный ввод...",
-    placeholderPremium: "ГЛУБОКОЕ СКАНИРОВАНИЕ АКТИВНО. ЗАДАЙТЕ СЛОЖНЫЙ ВОПРОС.",
-    recharge: "ТРЕБУЕТСЯ ПЕРЕЗАРЯДКА"
+    placeholder: "> Введите команду...",
+    placeholderPremium: "> ГЛУБОКОЕ СКАНИРОВАНИЕ...",
+    recharge: "НЕТ ЭНЕРГИИ"
   },
   hi: {
     init: "न्यूरल लिंक आरंभ किया जा रहा है...",
     connected: "जुड़ा हुआ। विषय:",
     listening: "मैं सुन रहा हूँ। आपकी क्या क्वेरी है?",
-    placeholder: "एन्क्रिप्टेड इनपुट...",
-    placeholderPremium: "डीप स्कैन सक्रिय। एक जटिल प्रश्न पूछें।",
-    recharge: "रिचार्ज आवश्यक"
+    placeholder: "> कमांड दर्ज करें...",
+    placeholderPremium: "> डीप स्कैन सक्रिय...",
+    recharge: "ऊर्जा समाप्त"
   },
   ar: {
     init: "جارٍ تهيئة الرابط العصبي...",
     connected: "متصل. الموضوع:",
     listening: "أنا أستمع. ما هو استفسارك؟",
-    placeholder: "إدخال مشفر...",
-    placeholderPremium: "المسح العميق نشط. اطرح سؤالاً معقداً.",
-    recharge: "إعادة الشحن مطلوبة"
+    placeholder: "> أدخل الأمر...",
+    placeholderPremium: "> المسح العميق نشط...",
+    recharge: "الطاقة نفدت"
   },
   fa: {
     init: "در حال راه اندازی لینک عصبی...",
     connected: "متصل شد. سوژه:",
     listening: "من گوش می دهم. پرسش شما چیست؟",
-    placeholder: "ورودی رمزگذاری شده...",
-    placeholderPremium: "اسکن عمیق فعال است. سوال پیچیده بپرسید.",
-    recharge: "شارژ مجدد لازم است"
+    placeholder: "> دستور را وارد کنید...",
+    placeholderPremium: "> اسکن عمیق فعال است...",
+    recharge: "اتمام انرژی"
   }
 };
 
@@ -169,9 +188,6 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
         setEnergy(9999);
         setLoading(false);
         initializationRef.current = true;
-        
-        // Skip normal init if we want, or just let it run but keep energy high
-        // We'll let the normal init run but override energy
     }
     
     const storedEnergy = localStorage.getItem(`energy_${today}`);
@@ -390,35 +406,38 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
   };
 
   return (
-    <div className="flex flex-col h-[100dvh] bg-black text-[#F5F5F7] font-sans overflow-hidden" style={{ height: '100dvh' }}>
+    <div className="flex flex-col h-[100dvh] bg-black text-[#F5F5F7] font-mono overflow-hidden" style={{ height: '100dvh' }}>
+      
+      <div className="noise-overlay"></div>
+      <div className="scanlines"></div>
       
       {/* --- HEADER --- */}
       <div className="pt-4 pb-2 px-6 flex justify-between items-center bg-black/80 backdrop-blur-xl z-50 border-b border-white/5 sticky top-0 flex-shrink-0">
         <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-[#00FF41]/10 flex items-center justify-center border border-[#00FF41]/20">
-                <Activity className="w-4 h-4 text-[#00FF41]" />
+            <div className="w-8 h-8 rounded bg-[#00FF41]/10 flex items-center justify-center border border-[#00FF41]/20">
+                <Terminal className="w-4 h-4 text-[#00FF41]" />
             </div>
             <div>
-                <h1 className="text-xs font-bold tracking-widest uppercase text-white">theg0d</h1>
-                <div className="flex items-center gap-1 text-[10px] text-[#86868B]">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#00FF41] animate-pulse"></span>
-                    ENCRYPTED UPLINK
+                <h1 className="text-xs font-bold tracking-widest uppercase text-white glitch-text" data-text="THEG0D">THEG0D</h1>
+                <div className="flex items-center gap-1 text-[9px] text-[#86868B] font-mono">
+                    <span className="w-1.5 h-1.5 bg-[#00FF41] animate-pulse"></span>
+                    CONNECTED: 127.0.0.1
                 </div>
             </div>
         </div>
 
-            <div className="flex items-center gap-4 bg-[#1C1C1E] px-4 py-2 rounded-full border border-white/5">
+            <div className="flex items-center gap-4 bg-[#1C1C1E] px-4 py-2 rounded border border-white/5 font-mono">
             <div className="flex items-center gap-2">
                  <Battery className={`w-3 h-3 ${energy < 2 ? 'text-red-500 animate-pulse' : 'text-[#00FF41]'}`} />
-                 <span className="text-[10px] font-mono text-[#86868B]">
-                    {energy > 9000 ? "∞" : `${energy}/5`}
+                 <span className="text-[10px] text-[#86868B]">
+                    {energy > 9000 ? "INF" : `${energy}/5`}
                  </span>
             </div>
             <div className="w-[1px] h-3 bg-white/10"></div>
             <div className="flex items-center gap-2">
-                <span className="text-[10px] font-mono text-[#86868B]">SANITY</span>
-                <div className="w-16 h-1 bg-[#333] rounded-full overflow-hidden">
-                    <div className="h-full bg-gradient-to-r from-red-500 to-[#00FF41] transition-all duration-1000" style={{ width: `${sanity}%` }}></div>
+                <span className="text-[10px] text-[#86868B]">CPU</span>
+                <div className="w-12 h-1 bg-[#333] overflow-hidden">
+                    <div className="h-full bg-[#00FF41] animate-pulse" style={{ width: `${sanity}%` }}></div>
                 </div>
             </div>
             <div className="w-[1px] h-3 bg-white/10"></div>
@@ -430,34 +449,44 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
 
       {/* --- CHAT --- */}
       <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 scrollbar-hide relative w-full">
-        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.02] pointer-events-none">
-            <Wifi className="w-96 h-96" />
+        
+        {/* Background Geometry */}
+        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.03] pointer-events-none animate-spin-slow">
+            <Wifi className="w-[800px] h-[800px]" />
         </div>
 
         {messages.map((msg) => (
           <motion.div 
             key={msg.id}
-            initial={{ opacity: 0, y: 10, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
+            initial={{ opacity: 0, x: msg.sender === 'god' ? -10 : 10 }}
+            animate={{ opacity: 1, x: 0 }}
             className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
           >
-            <div className={`max-w-[85%] md:max-w-[65%] px-5 py-3 rounded-2xl text-[15px] leading-relaxed shadow-sm relative group ${
+            <div className={`max-w-[85%] md:max-w-[65%] px-5 py-4 text-[14px] leading-relaxed relative group font-mono border ${
               msg.sender === 'god' 
-                ? 'bg-white/5 backdrop-blur-md border border-white/10 text-[#F5F5F7] rounded-tl-sm font-mono shadow-[0_4px_24px_rgba(0,0,0,0.2)]' 
-                : 'bg-[#00FF41] text-black font-medium rounded-tr-sm shadow-[0_0_15px_rgba(0,255,65,0.25)]'
+                ? 'bg-black/40 text-[#00FF41] border-[#00FF41]/20 shadow-[0_0_15px_rgba(0,255,65,0.05)] rounded-tr-xl rounded-br-xl rounded-bl-xl' 
+                : 'bg-white text-black border-transparent rounded-tl-xl rounded-bl-xl rounded-br-xl'
             }`}>
-              {msg.text}
+              <div className="absolute -top-3 left-0 text-[9px] text-[#86868B] bg-black px-1 font-mono uppercase tracking-widest">
+                {msg.sender === 'god' ? 'SYSTEM' : 'SUBJECT'}
+              </div>
+              
+              {msg.sender === 'god' ? (
+                <TypewriterEffect text={msg.text} />
+              ) : (
+                msg.text
+              )}
               
               {/* SHARE BUTTON FOR GOD MESSAGES */}
               {msg.sender === 'god' && (
                   <button 
                     onClick={() => {
-                        const shareText = `The System just analyzed my soul.\n\n"${msg.text.substring(0, 100)}..."\n\n— theg0d.com #CyberVedic`;
+                        const shareText = `SYSTEM LOG #4401:\n\n"${msg.text.substring(0, 100)}..."\n\n— theg0d.com`;
                         if (navigator.share) {
                             navigator.share({ title: 'theg0d', text: shareText, url: 'https://theg0d.com' });
                         } else {
                             navigator.clipboard.writeText(shareText);
-                            alert("Analysis Copied to Clipboard.");
+                            alert("LOG COPIED.");
                         }
                     }}
                     className="absolute -right-8 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-[#86868B] hover:text-[#00FF41]"
@@ -471,10 +500,8 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
         
         {isTyping && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-start">
-                <div className="bg-[#1C1C1E] px-4 py-3 rounded-2xl rounded-tl-sm border border-white/5 flex gap-1">
-                    <span className="w-1.5 h-1.5 bg-[#86868B] rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
-                    <span className="w-1.5 h-1.5 bg-[#86868B] rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
-                    <span className="w-1.5 h-1.5 bg-[#86868B] rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                <div className="text-[#00FF41] font-mono text-xs animate-pulse">
+                    [COMPILING FATE DATA...]
                 </div>
             </motion.div>
         )}
@@ -482,19 +509,20 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
       </div>
 
       {/* --- INPUT --- */}
-      <div className="p-4 md:p-6 bg-gradient-to-t from-black via-black to-transparent flex-shrink-0 z-40 w-full flex flex-col gap-3">
-        <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1 mask-linear-fade items-center">
-             <button onClick={() => setShowPaymentModal({ show: true, type: 'DEEP_SCAN' })} className="flex items-center gap-1 whitespace-nowrap px-4 py-2 rounded-full bg-[#FFD700]/10 border border-[#FFD700]/30 text-xs text-[#FFD700] hover:bg-[#FFD700]/20 transition-all flex-shrink-0">
+      <div className="p-4 md:p-6 bg-black/90 border-t border-white/5 flex-shrink-0 z-40 w-full flex flex-col gap-3 backdrop-blur-md">
+        <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1 items-center">
+             <button onClick={() => setShowPaymentModal({ show: true, type: 'DEEP_SCAN' })} className="flex items-center gap-1 whitespace-nowrap px-4 py-2 bg-[#FFD700]/10 border border-[#FFD700]/30 text-[10px] font-mono text-[#FFD700] hover:bg-[#FFD700]/20 transition-all flex-shrink-0 uppercase tracking-widest">
                 <Lock className="w-3 h-3" /> DEEP SCAN ($10)
              </button>
             {SUGGESTED_QUESTIONS.map((q, i) => (
-                <button key={i} onClick={() => handleSend(null, q)} disabled={isTyping} className="whitespace-nowrap px-4 py-2 rounded-full bg-[#1C1C1E] border border-white/10 text-xs text-[#86868B] hover:text-[#00FF41] hover:border-[#00FF41]/30 transition-all flex-shrink-0 disabled:opacity-50">
+                <button key={i} onClick={() => handleSend(null, q)} disabled={isTyping} className="whitespace-nowrap px-4 py-2 bg-[#1C1C1E] border border-white/10 text-[10px] font-mono text-[#86868B] hover:text-[#00FF41] hover:border-[#00FF41]/30 transition-all flex-shrink-0 disabled:opacity-50 uppercase tracking-widest">
                     {q}
                 </button>
             ))}
         </div>
 
-        <form onSubmit={handleSend} className={`relative max-w-3xl mx-auto w-full transition-all duration-500 ${isPremiumMode ? 'p-[1px] rounded-full bg-gradient-to-r from-[#FFD700] via-[#FFA500] to-[#FFD700]' : ''}`}>
+        <form onSubmit={handleSend} className={`relative w-full flex items-center gap-4 ${isPremiumMode ? 'border-b border-[#FFD700]' : 'border-b border-white/20'}`}>
+            <span className="text-[#00FF41] font-mono text-lg animate-pulse">{'>'}</span>
             <input 
                 ref={inputRef}
                 type="text" 
@@ -502,11 +530,11 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
                 onChange={e => setInput(e.target.value)}
                 placeholder={isPremiumMode ? uiText.placeholderPremium : (energy > 0 ? uiText.placeholder : uiText.recharge)}
                 disabled={energy <= 0}
-                className={`w-full bg-white/5 backdrop-blur-xl text-white pl-6 pr-14 py-4 rounded-full border ${isPremiumMode ? 'border-transparent' : 'border-white/10'} focus:border-[#00FF41]/30 focus:bg-white/10 outline-none transition-all shadow-[0_8px_32px_rgba(0,0,0,0.4)] placeholder-[#666] text-base disabled:opacity-50`}
+                className="w-full bg-transparent text-white py-4 font-mono text-base outline-none placeholder-[#333]"
                 autoComplete="off"
             />
-            <button type="submit" disabled={!input.trim() || isTyping || energy <= 0} className={`absolute right-2 top-2 w-10 h-10 rounded-full flex items-center justify-center text-black hover:scale-105 active:scale-95 transition-all disabled:opacity-0 disabled:scale-50 shadow-[0_0_15px_rgba(0,255,65,0.4)] ${isPremiumMode ? 'bg-[#FFD700] shadow-[0_0_20px_rgba(255,215,0,0.6)]' : 'bg-[#00FF41]'}`}>
-                {isPremiumMode ? <Sparkles className="w-5 h-5 ml-0.5" /> : <Send className="w-5 h-5 ml-0.5" />}
+            <button type="submit" disabled={!input.trim() || isTyping || energy <= 0} className={`p-2 hover:text-[#00FF41] transition-colors disabled:opacity-30 ${isPremiumMode ? 'text-[#FFD700]' : 'text-white'}`}>
+                <Send className="w-5 h-5" />
             </button>
         </form>
       </div>
@@ -514,56 +542,62 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
       {/* --- PAYMENT MODAL --- */}
       <AnimatePresence>
         {showPaymentModal.show && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-4">
-            <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", damping: 25, stiffness: 300 }} className="bg-[#1C1C1E] w-full max-w-md rounded-t-[32px] md:rounded-[32px] border border-white/10 p-8 relative shadow-2xl pb-12 md:pb-8">
-              <div className="w-12 h-1 bg-white/10 rounded-full mx-auto mb-8 md:hidden"></div>
-              <button onClick={() => setShowPaymentModal({ show: false, type: null })} className="absolute top-6 right-6 bg-[#2C2C2E] p-2 rounded-full text-[#86868B] hover:text-white transition-colors"><X className="w-4 h-4" /></button>
-              <div className="text-center space-y-6">
-                <div className="w-20 h-20 bg-[#00FF41]/10 rounded-full flex items-center justify-center mx-auto border border-[#00FF41]/20 relative"><Coins className="w-10 h-10 text-[#00FF41]" /></div>
-                <div><h3 className="text-2xl font-bold text-white mb-2">Recharge Signal</h3><p className="text-[#86868B] text-sm">Restore connection bandwidth.</p></div>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-end md:items-center justify-center p-0 md:p-4">
+            <motion.div initial={{ y: 50 }} animate={{ y: 0 }} exit={{ y: 50 }} className="bg-black w-full max-w-md border border-[#00FF41]/30 p-8 relative shadow-[0_0_50px_rgba(0,255,65,0.1)]">
+              <button onClick={() => setShowPaymentModal({ show: false, type: null })} className="absolute top-4 right-4 text-[#86868B] hover:text-white"><X className="w-4 h-4" /></button>
+              
+              <div className="text-center space-y-6 font-mono">
+                <div className="w-16 h-16 border border-[#00FF41] flex items-center justify-center mx-auto relative">
+                    <div className="absolute inset-0 bg-[#00FF41] opacity-10 animate-pulse"></div>
+                    <Coins className="w-8 h-8 text-[#00FF41]" />
+                </div>
+                
+                <div>
+                    <h3 className="text-xl text-white uppercase tracking-widest mb-2">System Recharge</h3>
+                    <p className="text-[#86868B] text-xs">Protocol requires energy token.</p>
+                </div>
+
                 {paymentLoading ? (
-                  <div className="py-8 flex flex-col items-center gap-4"><div className="w-16 h-16 relative"><div className="absolute inset-0 border-4 border-[#00FF41]/20 rounded-full"></div><div className="absolute inset-0 border-4 border-[#00FF41] rounded-full border-t-transparent animate-spin"></div></div><div className="text-[#00FF41] animate-pulse text-sm font-mono text-center">GENERATING ADDRESS...</div></div>
+                  <div className="py-8 flex flex-col items-center gap-4">
+                      <div className="w-12 h-12 border-4 border-t-[#00FF41] border-white/10 rounded-full animate-spin"></div>
+                      <div className="text-[#00FF41] text-xs blink">GENERATING_ADDRESS...</div>
+                  </div>
                 ) : paymentResult ? (
-                    <div className="space-y-6 animate-in fade-in zoom-in duration-300">
-                         <div className="bg-white p-2 rounded-xl w-fit mx-auto">
-                             <img src={paymentResult.qr_code_url} alt="QR Code" className="w-48 h-48 object-contain" />
+                    <div className="space-y-6">
+                         <div className="bg-white p-2 w-fit mx-auto border border-white/20">
+                             <img src={paymentResult.qr_code_url} alt="QR Code" className="w-40 h-40 object-contain" />
                          </div>
                          <div className="space-y-2">
-                              <p className="text-xs text-[#86868B] uppercase tracking-widest">Send {paymentResult.amount} {paymentResult.pay_currency.toUpperCase()}</p>
+                              <p className="text-[10px] text-[#86868B] uppercase tracking-widest">SEND {paymentResult.amount} {paymentResult.pay_currency.toUpperCase()}</p>
                               <div 
                                  onClick={() => navigator.clipboard.writeText(paymentResult.pay_address)}
-                                 className="bg-black/50 p-4 rounded-xl border border-white/5 font-mono text-xs text-[#00FF41] break-all select-all cursor-pointer hover:border-[#00FF41]/50 transition-all flex items-center justify-between gap-2 group"
+                                 className="bg-[#111] p-3 border border-dashed border-[#333] text-[10px] text-[#00FF41] break-all cursor-pointer hover:border-[#00FF41] transition-all text-center"
                               >
-                                 <span>{paymentResult.pay_address}</span>
-                                 <Copy className="w-4 h-4 opacity-50 group-hover:opacity-100" />
+                                 {paymentResult.pay_address}
                               </div>
                          </div>
                          <button 
                              onClick={confirmPayment}
                              disabled={isVerifying}
-                             className="w-full bg-[#00FF41] text-black font-bold py-4 rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-wait"
+                             className="w-full bg-[#00FF41] text-black font-bold py-4 uppercase tracking-widest hover:bg-white transition-colors disabled:opacity-50"
                          >
-                             {isVerifying ? (
-                                 <>
-                                     <div className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin"/>
-                                     VERIFYING ON BLOCKCHAIN...
-                                 </>
-                             ) : (
-                                 "I HAVE SENT IT"
-                             )}
+                             {isVerifying ? "VERIFYING..." : "CONFIRM TRANSACTION"}
                          </button>
                     </div>
                 ) : (
-                    <div className="space-y-4"><div className="bg-black/50 p-4 rounded-xl border border-white/5 font-mono text-xs text-[#86868B] break-all select-all cursor-pointer hover:border-[#00FF41]/30 transition-colors">T9yD14Nj9j7xAB4dbGeiX9h8unkkhxnXVpe</div><button onClick={handlePayment} className="w-full bg-[#00FF41] text-black font-bold py-4 rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2"><Sparkles className="w-4 h-4" />CONFIRM PAYMENT</button></div>
+                    <button onClick={handlePayment} className="w-full bg-[#00FF41] text-black font-bold py-4 uppercase tracking-widest hover:bg-white transition-colors flex items-center justify-center gap-2">
+                        <Zap className="w-4 h-4" /> INITIATE TRANSFER
+                    </button>
                 )}
               </div>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
+      
       {/* --- FOOTER STATUS --- */}
-      <div className="bg-black text-[#333] text-[9px] font-mono text-center py-1 uppercase tracking-widest select-none">
-        SERVER: ONLINE | LATENCY: {Math.floor(Math.random() * 20) + 10}MS | ENCRYPTION: AES-256
+      <div className="bg-black border-t border-white/5 text-[#333] text-[9px] font-mono text-center py-1 uppercase tracking-widest select-none">
+        SERVER: ONLINE | ENCRYPTION: ACTIVE | NODE: {Math.floor(Math.random() * 9999)}
       </div>
     </div>
   );

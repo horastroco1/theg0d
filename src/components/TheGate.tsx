@@ -3,11 +3,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
-import { Loader2, ArrowRight, MapPin, Calendar, User, Globe, Database, X, Key, Copy, HelpCircle } from 'lucide-react';
+import { Loader2, ArrowRight, MapPin, Calendar, User, Globe, Database, X, Key, Copy, HelpCircle, Terminal } from 'lucide-react';
 import { locationService, LocationData } from '@/services/locationService';
 import { supabase } from '@/lib/supabase';
 import { astrologyService } from '@/services/astrologyService';
-import BootSequence from './BootSequence'; // NEW IMPORT
+import BootSequence from './BootSequence';
 
 export interface FormData {
   name: string;
@@ -19,7 +19,7 @@ export interface FormData {
   timezone: string;
   locationName: string;
   language?: string;
-  gender?: string; // ADDED GENDER
+  gender?: string;
   chart_data?: any;
   identity_key?: string;
 }
@@ -34,9 +34,8 @@ export default function TheGate({ onSubmit }: TheGateProps) {
   const [mode, setMode] = useState<'NEW' | 'LOGIN'>('NEW');
   
   const [name, setName] = useState('');
-  const [loginKey, setLoginKey] = useState(''); // For Login Mode
+  const [loginKey, setLoginKey] = useState(''); 
   
-  // Date Inputs (Split)
   const [day, setDay] = useState('');
   const [month, setMonth] = useState('');
   const [year, setYear] = useState('');
@@ -49,37 +48,31 @@ export default function TheGate({ onSubmit }: TheGateProps) {
   const [selectedLocation, setSelectedLocation] = useState<LocationData | null>(null);
   const [isSearching, setIsSearching] = useState(false);
   
-  const [gender, setGender] = useState<string>(''); // GENDER STATE
+  const [gender, setGender] = useState<string>(''); 
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [detectedLang, setDetectedLang] = useState<string>('en');
+  const [isWarping, setIsWarping] = useState(false); // Warp State
   
-  const [generatedKey, setGeneratedKey] = useState<string | null>(null); // New Key Display
+  const [generatedKey, setGeneratedKey] = useState<string | null>(null);
 
   const isRTL = detectedLang === 'fa' || detectedLang === 'ar' || detectedLang === 'he';
 
   const searchTimeout = useRef<NodeJS.Timeout | null>(null);
-  
-  // REFS FOR AUTO-FOCUS
   const monthRef = useRef<HTMLInputElement>(null);
   const yearRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const detectUserContext = async () => {
         try {
-            // 1. Check LocalStorage for Auto-Login
             const savedKey = localStorage.getItem('god_identity_key');
             if (savedKey) {
                 setLoginKey(savedKey);
                 setMode('LOGIN');
-                // Auto-trigger login logic is tricky inside useEffect due to dependency cycles.
-                // We will set a flag or just let the user click "Restore" pre-filled.
-                // For true auto-login:
                 setTimeout(() => autoLogin(savedKey), 500);
             }
 
-            // 2. Try IP Geolocation first
             const response = await axios.get('https://ipapi.co/json/');
             const country = response.data.country_code; 
             
@@ -90,7 +83,6 @@ export default function TheGate({ onSubmit }: TheGateProps) {
                 setDetectedLang('es');
                 document.dir = 'ltr';
             } else {
-                 // Fallback to browser
                  const userLang = navigator.language || navigator.languages[0];
                  if (userLang) {
                     const code = userLang.split('-')[0];
@@ -117,6 +109,15 @@ export default function TheGate({ onSubmit }: TheGateProps) {
       document.dir = isRTL ? 'rtl' : 'ltr';
   }, [isRTL]);
 
+  const triggerWarp = async (callback: () => Promise<void>) => {
+      setIsWarping(true);
+      // Play Warp Sound if available
+      // audioService.play('warp'); 
+      
+      await new Promise(resolve => setTimeout(resolve, 800)); // Wait for animation
+      await callback();
+  };
+
   const autoLogin = async (key: string) => {
       setIsLoading(true);
       try {
@@ -127,35 +128,34 @@ export default function TheGate({ onSubmit }: TheGateProps) {
               .limit(1);
           
           if (fetchError || !users || users.length === 0) {
-              // Invalid key in storage - clear it
               localStorage.removeItem('god_identity_key');
               throw new Error("Session Expired.");
           }
 
           const user = users[0];
-          await onSubmit({
-              name: user.name,
-              date: user.birth_date,
-              time: user.birth_time,
-              timeUnknown: user.birth_time === '12:00',
-              latitude: user.latitude,
-              longitude: user.longitude,
-              timezone: user.timezone,
-              locationName: user.birth_place,
-              language: detectedLang,
-              gender: user.gender || 'unknown',
-              chart_data: user.chart_data,
-              identity_key: user.identity_key
+          await triggerWarp(async () => {
+              await onSubmit({
+                  name: user.name,
+                  date: user.birth_date,
+                  time: user.birth_time,
+                  timeUnknown: user.birth_time === '12:00',
+                  latitude: user.latitude,
+                  longitude: user.longitude,
+                  timezone: user.timezone,
+                  locationName: user.birth_place,
+                  language: detectedLang,
+                  gender: user.gender || 'unknown',
+                  chart_data: user.chart_data,
+                  identity_key: user.identity_key
+              });
           });
       } catch (err: any) {
           setIsLoading(false);
-          // Don't show error for auto-login, just reset to manual
           console.log("Auto-login failed:", err.message);
           setMode('NEW'); 
       }
   };
 
-  // Fixed Location Search Logic
   useEffect(() => {
     if (searchTimeout.current) clearTimeout(searchTimeout.current);
 
@@ -187,7 +187,6 @@ export default function TheGate({ onSubmit }: TheGateProps) {
       if (field === 'd') {
           if (num.length <= 2) {
               setDay(num);
-              // Auto-Jump Logic
               if (num.length === 2) monthRef.current?.focus();
           }
       }
@@ -216,7 +215,6 @@ export default function TheGate({ onSubmit }: TheGateProps) {
   const copyKey = () => {
       if (generatedKey) {
           navigator.clipboard.writeText(generatedKey);
-          // Could add a toast here
       }
   };
 
@@ -224,7 +222,6 @@ export default function TheGate({ onSubmit }: TheGateProps) {
     e.preventDefault();
     setError(null);
 
-    // --- LOGIN FLOW (KEY BASED) ---
     if (mode === 'LOGIN') {
         if (!loginKey) {
             setError("Identity Key Required.");
@@ -236,30 +233,32 @@ export default function TheGate({ onSubmit }: TheGateProps) {
             const { data: users, error: fetchError } = await supabase
                 .from('users')
                 .select('*')
-                .eq('identity_key', loginKey.trim()) // Exact match on key
+                .eq('identity_key', loginKey.trim()) 
                 .limit(1);
             
             if (fetchError || !users || users.length === 0) {
                 throw new Error("Invalid Identity Key. Access Denied.");
             }
-
             
-            // SAVE TO LOCAL STORAGE
+            const user = users[0]; // Get user first
+
             if (user.identity_key) localStorage.setItem('god_identity_key', user.identity_key);
 
-            await onSubmit({
-                name: user.name,
-                date: user.birth_date,
-                time: user.birth_time,
-                timeUnknown: user.birth_time === '12:00',
-                latitude: user.latitude,
-                longitude: user.longitude,
-                timezone: user.timezone,
-                locationName: user.birth_place,
-                language: detectedLang,
-                gender: user.gender || 'unknown', // Load gender
-                chart_data: user.chart_data,
-                identity_key: user.identity_key
+            await triggerWarp(async () => {
+                await onSubmit({
+                    name: user.name,
+                    date: user.birth_date,
+                    time: user.birth_time,
+                    timeUnknown: user.birth_time === '12:00',
+                    latitude: user.latitude,
+                    longitude: user.longitude,
+                    timezone: user.timezone,
+                    locationName: user.birth_place,
+                    language: detectedLang,
+                    gender: user.gender || 'unknown',
+                    chart_data: user.chart_data,
+                    identity_key: user.identity_key
+                });
             });
         } catch (err: any) {
             setIsLoading(false);
@@ -268,7 +267,6 @@ export default function TheGate({ onSubmit }: TheGateProps) {
         return;
     }
 
-    // --- NEW USER FLOW ---
     if (!name) {
         setError(t('err_name'));
         return;
@@ -276,7 +274,6 @@ export default function TheGate({ onSubmit }: TheGateProps) {
 
     setIsLoading(true);
     
-    // 1. Validate Date
     const dNum = parseInt(day);
     const mNum = parseInt(month);
     const yNum = parseInt(year);
@@ -293,7 +290,6 @@ export default function TheGate({ onSubmit }: TheGateProps) {
         return;
     }
 
-    // 2. Age Gate
     if (!validateAge(yNum, mNum, dNum)) {
         setError("Access Denied: Subject too young for simulation (13+).");
         setIsLoading(false);
@@ -325,10 +321,8 @@ export default function TheGate({ onSubmit }: TheGateProps) {
         timeUnknown: timeUnknown
       });
 
-      // GENERATE IDENTITY KEY
       const newIdentityKey = `G0D-${Math.random().toString(36).substr(2, 4).toUpperCase()}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`;
       
-      // SAVE TO LOCAL STORAGE IMMEDIATELY
       localStorage.setItem('god_identity_key', newIdentityKey);
 
       const { error: dbError } = await supabase
@@ -342,24 +336,18 @@ export default function TheGate({ onSubmit }: TheGateProps) {
             latitude: selectedLocation.latitude,
             longitude: selectedLocation.longitude,
             timezone: timezoneOffset,
-            gender: gender, // Save Gender
+            gender: gender, 
             chart_data: chartData,
-            identity_key: newIdentityKey // SAVE KEY
+            identity_key: newIdentityKey 
           }
         ]);
         
       if (dbError) {
         console.error("DB Backup Failed:", JSON.stringify(dbError, null, 2));
-        // Don't block the UI, just log it. 
-        // The user can still proceed with local data if needed, but for now we assume success in UI.
       }
 
-      // STOP LOADING & SHOW KEY
       setIsLoading(false);
       setGeneratedKey(newIdentityKey);
-
-      // WAIT FOR USER TO CLICK "PROCEED"
-      // We don't call onSubmit yet. We wait for them to copy the key.
 
     } catch (err: any) {
       console.error("Signup Error:", err);
@@ -369,7 +357,6 @@ export default function TheGate({ onSubmit }: TheGateProps) {
   };
 
   const proceedWithKey = async () => {
-      // Actually login the user after they saw the key
       if (!generatedKey) return;
       
       const fullDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
@@ -379,19 +366,21 @@ export default function TheGate({ onSubmit }: TheGateProps) {
         selectedLocation!.timezone
       );
 
-      await onSubmit({
-        name,
-        date: fullDate,
-        time: timeUnknown ? "12:00" : time,
-        timeUnknown,
-        latitude: selectedLocation!.latitude,
-        longitude: selectedLocation!.longitude,
-        timezone: timezoneOffset,
-        locationName: selectedLocation!.name,
-        language: detectedLang,
-        gender,
-        chart_data: null, // We don't need to pass it here since we just saved it? Actually we should pass what we have.
-        identity_key: generatedKey
+      await triggerWarp(async () => {
+        await onSubmit({
+            name,
+            date: fullDate,
+            time: timeUnknown ? "12:00" : time,
+            timeUnknown,
+            latitude: selectedLocation!.latitude,
+            longitude: selectedLocation!.longitude,
+            timezone: timezoneOffset,
+            locationName: selectedLocation!.name,
+            language: detectedLang,
+            gender,
+            chart_data: null, 
+            identity_key: generatedKey
+        });
       });
   };
 
@@ -431,16 +420,30 @@ export default function TheGate({ onSubmit }: TheGateProps) {
 
   return (
     <>
+    {/* WARP OVERLAY */}
+    <AnimatePresence>
+        {isWarping && (
+            <motion.div
+                initial={{ opacity: 0, scale: 1 }}
+                animate={{ opacity: 1, scale: 1.5 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.8, ease: "circIn" }}
+                className="fixed inset-0 z-[999] bg-white mix-blend-difference pointer-events-none"
+            />
+        )}
+    </AnimatePresence>
+
     {!bootComplete && <BootSequence onComplete={() => setBootComplete(true)} />}
     
-    <div className={`min-h-screen flex flex-col items-center justify-center relative p-6 bg-black text-[#F5F5F7] overflow-hidden font-sans ${isRTL ? 'rtl' : 'ltr'}`} dir={isRTL ? 'rtl' : 'ltr'}>
+    <div className={`min-h-screen flex flex-col items-center justify-center relative p-6 bg-black text-[#F5F5F7] overflow-hidden font-mono ${isRTL ? 'rtl' : 'ltr'}`} dir={isRTL ? 'rtl' : 'ltr'}>
       
-      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-        <div className="absolute top-[-20%] left-[20%] w-[500px] h-[500px] bg-[#00FF41] rounded-full mix-blend-screen filter blur-[150px] opacity-10 animate-pulse hidden md:block"></div>
-        <div className="absolute bottom-[-10%] right-[10%] w-[300px] h-[300px] bg-blue-500 rounded-full mix-blend-screen filter blur-[120px] opacity-10 hidden md:block"></div>
-        
-        {/* Mobile Glows */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[500px] bg-[#00FF41] rounded-full mix-blend-screen filter blur-[120px] opacity-5 md:hidden"></div>
+      <div className="noise-overlay"></div>
+      <div className="scanlines"></div>
+      
+      {/* Background Geometry */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0 flex items-center justify-center opacity-20">
+        <div className="w-[800px] h-[800px] border border-[#00FF41]/20 rounded-full animate-spin-slow dashed-border"></div>
+        <div className="absolute w-[600px] h-[600px] border border-[#00FF41]/10 rounded-full animate-spin-reverse dashed-border"></div>
       </div>
 
       <div className={`absolute top-6 z-50 flex gap-2 ${isRTL ? 'left-6' : 'right-6'}`}>
@@ -448,7 +451,7 @@ export default function TheGate({ onSubmit }: TheGateProps) {
               <button 
                 key={lang}
                 onClick={() => setDetectedLang(lang)}
-                className={`text-[10px] uppercase tracking-widest px-2 py-1 rounded border ${
+                className={`text-[10px] uppercase tracking-widest px-2 py-1 rounded border font-mono ${
                     detectedLang === lang ? 'bg-[#00FF41] text-black border-[#00FF41]' : 'text-[#86868B] border-transparent hover:border-[#86868B]'
                 }`}
               >
@@ -473,7 +476,7 @@ export default function TheGate({ onSubmit }: TheGateProps) {
               transition={{ delay: 0.3 }}
               className="inline-block"
             >
-              <h1 className="text-5xl md:text-9xl font-bold tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-white/40 select-none glitch-text" data-text="theg0d">
+              <h1 className="text-6xl md:text-9xl font-bold tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-white/40 select-none glitch-text" data-text="theg0d">
                 theg0d
               </h1>
             </motion.div>
@@ -482,7 +485,7 @@ export default function TheGate({ onSubmit }: TheGateProps) {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.6 }}
-              className="text-[#86868B] uppercase tracking-[0.3em] text-xs font-mono"
+              className="text-[#00FF41] uppercase tracking-[0.3em] text-xs font-mono animate-pulse"
             >
               Cyber-Vedic Intelligence Protocol
             </motion.p>
@@ -492,11 +495,14 @@ export default function TheGate({ onSubmit }: TheGateProps) {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 1, type: "spring", stiffness: 200 }}
-              className="bg-[#00FF41] text-black font-bold px-8 py-4 rounded-full hover:shadow-[0_0_30px_rgba(0,255,65,0.4)] transition-all flex items-center gap-2 mx-auto mt-8 z-50 relative"
+              className="group relative bg-black border border-[#00FF41] text-[#00FF41] font-mono font-bold px-8 py-4 rounded hover:bg-[#00FF41] hover:text-black transition-all flex items-center gap-2 mx-auto mt-8 z-50 overflow-hidden"
             >
-              {isRTL ? <ArrowRight className="w-4 h-4 rotate-180" /> : null}
-              {t('enter')} 
-              {!isRTL ? <ArrowRight className="w-4 h-4" /> : null}
+              <div className="absolute inset-0 bg-[#00FF41]/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+              <span className="relative z-10 flex items-center gap-2">
+                  {isRTL ? <ArrowRight className="w-4 h-4 rotate-180" /> : null}
+                  {t('enter')} 
+                  {!isRTL ? <ArrowRight className="w-4 h-4" /> : null}
+              </span>
             </motion.button>
           </motion.div>
         ) : generatedKey ? (
@@ -508,33 +514,39 @@ export default function TheGate({ onSubmit }: TheGateProps) {
              animate="visible"
              className="w-full max-w-md z-10 relative"
            >
-             <div className="ios-glass p-8 rounded-[32px] text-center space-y-6 border border-[#00FF41]/30 shadow-[0_0_30px_rgba(0,255,65,0.1)]">
-                <div className="w-16 h-16 bg-[#00FF41]/10 rounded-full flex items-center justify-center mx-auto border border-[#00FF41]/20">
+             <div className="bg-black/80 backdrop-blur-xl p-8 rounded border border-[#00FF41] text-center space-y-6 shadow-[0_0_30px_rgba(0,255,65,0.1)] relative">
+                <div className="absolute top-0 left-0 w-2 h-2 bg-[#00FF41]"></div>
+                <div className="absolute top-0 right-0 w-2 h-2 bg-[#00FF41]"></div>
+                <div className="absolute bottom-0 left-0 w-2 h-2 bg-[#00FF41]"></div>
+                <div className="absolute bottom-0 right-0 w-2 h-2 bg-[#00FF41]"></div>
+
+                <div className="w-16 h-16 bg-[#00FF41]/10 rounded flex items-center justify-center mx-auto border border-[#00FF41]">
                     <Key className="w-8 h-8 text-[#00FF41]" />
                 </div>
                 
                 <div>
-                    <h3 className="text-2xl font-bold text-white mb-2">ACCESS GRANTED</h3>
-                    <p className="text-[#86868B] text-sm">
-                        {isRTL ? "این کلید هویت شماست. آن را ذخیره کنید." : "This is your Identity Key. Save it."}
+                    <h3 className="text-2xl font-bold text-white mb-2 font-mono">ACCESS GRANTED</h3>
+                    <p className="text-[#86868B] text-xs font-mono">
+                        {isRTL ? "این کلید هویت شماست. آن را ذخیره کنید." : "IDENTITY KEY GENERATED. SAVE IT."}
                         <br/>
-                        <span className="text-[#FF3333] text-xs uppercase font-bold">
-                            {isRTL ? "بدون آن دسترسی به سیستم ممکن نیست." : "IT IS THE ONLY WAY TO RETURN."}
+                        <span className="text-[#FF3333] uppercase font-bold animate-pulse">
+                            {isRTL ? "بدون آن دسترسی به سیستم ممکن نیست." : "DO NOT LOSE THIS KEY."}
                         </span>
                     </p>
                 </div>
 
                 <div 
                     onClick={copyKey}
-                    className="bg-black/50 p-4 rounded-xl border border-white/10 font-mono text-xl text-[#00FF41] tracking-widest cursor-pointer hover:bg-black/70 hover:border-[#00FF41]/50 transition-all flex items-center justify-between group"
+                    className="bg-black p-4 border border-[#00FF41]/50 font-mono text-lg text-[#00FF41] tracking-widest cursor-pointer hover:bg-[#00FF41]/10 transition-all flex items-center justify-between group relative overflow-hidden"
                 >
-                    <span>{generatedKey}</span>
-                    <Copy className="w-4 h-4 opacity-50 group-hover:opacity-100" />
+                    <div className="absolute inset-0 scanlines opacity-50"></div>
+                    <span className="relative z-10">{generatedKey}</span>
+                    <Copy className="w-4 h-4 opacity-50 group-hover:opacity-100 relative z-10" />
                 </div>
 
                 <button
                     onClick={proceedWithKey}
-                    className="ios-btn-accent w-full py-4 font-bold"
+                    className="w-full bg-[#00FF41] text-black font-bold py-4 font-mono hover:bg-white transition-colors"
                 >
                     {isRTL ? "ورود به سیستم" : "ENTER SYSTEM"}
                 </button>
@@ -549,23 +561,24 @@ export default function TheGate({ onSubmit }: TheGateProps) {
             animate="visible"
             className="w-full max-w-md z-10 relative"
           >
-            <div className="ios-glass p-8 rounded-[32px] relative overflow-visible border border-white/10 shadow-2xl">
+            <div className="bg-black/80 backdrop-blur-xl p-8 rounded border border-white/10 relative overflow-visible shadow-2xl">
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#00FF41] to-transparent opacity-50"></div>
               
               <div className="mb-8 text-center relative z-10">
-                <h2 className="text-2xl font-semibold tracking-tight text-white">
+                <h2 className="text-xl font-bold tracking-tight text-white font-mono uppercase">
                     {mode === 'NEW' ? t('identity') : t('login_title')}
                 </h2>
-                <p className="text-[#86868B] text-sm mt-2">
-                    {mode === 'NEW' ? (isRTL ? "پروفایل کارمیک خود را بسازید" : "Initialize your karmic profile.") : (isRTL ? "کلید خود را وارد کنید" : "Enter your Identity Key.")}
+                <p className="text-[#86868B] text-xs mt-2 font-mono">
+                    {mode === 'NEW' ? (isRTL ? "پروفایل کارمیک خود را بسازید" : "INITIALIZE KARMIC PROFILE") : (isRTL ? "کلید خود را وارد کنید" : "ENTER IDENTITY KEY")}
                 </p>
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-5 relative z-10">
+              <form onSubmit={handleSubmit} className="space-y-5 relative z-10 font-mono">
                 
                 {mode === 'LOGIN' ? (
                      // --- LOGIN INPUT (KEY) ---
                      <div className="relative group">
-                        <div className={`absolute top-4 text-[#86868B] ${isRTL ? 'right-4' : 'left-4'}`}>
+                        <div className={`absolute top-4 text-[#00FF41] ${isRTL ? 'right-4' : 'left-4'}`}>
                             <Key className="w-5 h-5" />
                         </div>
                         <input 
@@ -573,7 +586,7 @@ export default function TheGate({ onSubmit }: TheGateProps) {
                             value={loginKey}
                             onChange={e => setLoginKey(e.target.value)}
                             placeholder="G0D-XXXX-XXXX" 
-                            className={`ios-input w-full bg-black/50 border-white/10 focus:border-[#00FF41] text-white font-mono tracking-widest uppercase ${isRTL ? 'pr-12 text-right' : 'pl-12'}`}
+                            className={`w-full bg-black border border-white/20 focus:border-[#00FF41] text-[#00FF41] p-4 outline-none transition-all font-mono uppercase ${isRTL ? 'pr-12 text-right' : 'pl-12'}`}
                             autoFocus
                         />
                      </div>
@@ -581,15 +594,15 @@ export default function TheGate({ onSubmit }: TheGateProps) {
                     // --- SIGNUP INPUTS ---
                     <>
                         <div className="relative group">
-                        <div className={`absolute top-4 text-[#86868B] ${isRTL ? 'right-4' : 'left-4'}`}>
-                            <User className="w-5 h-5" />
+                        <div className={`absolute top-4 text-[#86868B] group-focus-within:text-[#00FF41] ${isRTL ? 'right-4' : 'left-4'}`}>
+                            <Terminal className="w-5 h-5" />
                         </div>
                         <input 
                             type="text" 
                             value={name}
                             onChange={e => setName(e.target.value)}
                             placeholder={t('name')} 
-                            className={`ios-input w-full bg-black/50 border-white/10 focus:border-[#00FF41] text-white ${isRTL ? 'pr-12 text-right' : 'pl-12'}`}
+                            className={`w-full bg-black border border-white/20 focus:border-[#00FF41] text-white p-4 outline-none transition-all font-mono ${isRTL ? 'pr-12 text-right' : 'pl-12'}`}
                             autoFocus
                         />
                         </div>
@@ -614,7 +627,7 @@ export default function TheGate({ onSubmit }: TheGateProps) {
                                             onChange={e => handleDateChange('d', e.target.value)}
                                             placeholder="DD"
                                             maxLength={2}
-                                            className="ios-input w-1/3 min-w-[60px] text-center bg-black/50 border-white/10 focus:border-[#00FF41] text-white"
+                                            className="w-1/3 min-w-[60px] text-center bg-black border border-white/20 focus:border-[#00FF41] text-white p-3 outline-none"
                                         />
                                         <input 
                                             ref={monthRef} // REF
@@ -624,7 +637,7 @@ export default function TheGate({ onSubmit }: TheGateProps) {
                                             onChange={e => handleDateChange('m', e.target.value)}
                                             placeholder="MM"
                                             maxLength={2}
-                                            className="ios-input w-1/3 min-w-[60px] text-center bg-black/50 border-white/10 focus:border-[#00FF41] text-white"
+                                            className="w-1/3 min-w-[60px] text-center bg-black border border-white/20 focus:border-[#00FF41] text-white p-3 outline-none"
                                         />
                                         <input 
                                             ref={yearRef} // REF
@@ -634,7 +647,7 @@ export default function TheGate({ onSubmit }: TheGateProps) {
                                             onChange={e => handleDateChange('y', e.target.value)}
                                             placeholder="YYYY"
                                             maxLength={4}
-                                            className="ios-input w-1/3 min-w-[80px] text-center bg-black/50 border-white/10 focus:border-[#00FF41] text-white"
+                                            className="w-1/3 min-w-[80px] text-center bg-black border border-white/20 focus:border-[#00FF41] text-white p-3 outline-none"
                                         />
                                     </div>
                                 </div>
@@ -647,7 +660,7 @@ export default function TheGate({ onSubmit }: TheGateProps) {
                                             value={time}
                                             disabled={timeUnknown}
                                             onChange={e => setTime(e.target.value)}
-                                            className={`ios-input w-full text-center px-0 bg-black/50 border-white/10 focus:border-[#00FF41] text-white ${timeUnknown ? 'opacity-30' : ''}`}
+                                            className={`w-full text-center bg-black border border-white/20 focus:border-[#00FF41] text-white p-3 outline-none ${timeUnknown ? 'opacity-30' : ''}`}
                                         />
                                     </div>
                                     <div className="flex items-center gap-2 min-w-[120px]">
@@ -656,9 +669,9 @@ export default function TheGate({ onSubmit }: TheGateProps) {
                                             id="timeUnknown"
                                             checked={timeUnknown}
                                             onChange={e => setTimeUnknown(e.target.checked)}
-                                            className="w-4 h-4 accent-[#00FF41] rounded cursor-pointer"
+                                            className="w-4 h-4 accent-[#00FF41] rounded cursor-pointer bg-black border-white/20"
                                         />
-                                        <label htmlFor="timeUnknown" className="text-xs text-[#86868B] cursor-pointer select-none font-mono whitespace-nowrap">
+                                        <label htmlFor="timeUnknown" className="text-[10px] text-[#86868B] cursor-pointer select-none font-mono whitespace-nowrap uppercase">
                                             {isRTL ? "زمان نامشخص" : "TIME UNKNOWN"}
                                         </label>
                                     </div>
@@ -671,10 +684,10 @@ export default function TheGate({ onSubmit }: TheGateProps) {
                                             key={g}
                                             type="button"
                                             onClick={() => setGender(g)}
-                                            className={`flex-1 py-3 rounded-xl text-xs font-bold border transition-all ${
+                                            className={`flex-1 py-3 text-[10px] font-bold border transition-all uppercase ${
                                                 gender === g 
-                                                ? 'bg-[#00FF41] text-black border-[#00FF41] shadow-[0_0_15px_rgba(0,255,65,0.3)]' 
-                                                : 'bg-black/50 text-[#86868B] border-white/10 hover:border-white/30'
+                                                ? 'bg-[#00FF41] text-black border-[#00FF41]' 
+                                                : 'bg-black text-[#86868B] border-white/20 hover:border-white/40'
                                             }`}
                                         >
                                             {g === 'male' && t('gender_m')}
@@ -697,7 +710,7 @@ export default function TheGate({ onSubmit }: TheGateProps) {
                                             setSelectedLocation(null);
                                         }}
                                         placeholder={t('city')} 
-                                        className={`ios-input w-full bg-black/50 border-white/10 focus:border-[#00FF41] text-white ${isRTL ? 'pr-12 text-right' : 'pl-12'}`}
+                                        className={`w-full bg-black border border-white/20 focus:border-[#00FF41] text-white p-4 outline-none transition-all font-mono ${isRTL ? 'pr-12 text-right' : 'pl-12'}`}
                                     />
                                     
                                     {cityQuery && (
@@ -722,7 +735,7 @@ export default function TheGate({ onSubmit }: TheGateProps) {
                                                 initial={{ opacity: 0, y: -10 }}
                                                 animate={{ opacity: 1, y: 0 }}
                                                 exit={{ opacity: 0 }}
-                                                className="absolute top-full left-0 w-full mt-2 bg-[#1C1C1E] border border-[#00FF41]/30 rounded-xl overflow-hidden z-[70] shadow-2xl max-h-48 overflow-y-auto"
+                                                className="absolute top-full left-0 w-full mt-2 bg-black border border-[#00FF41] z-[70] shadow-2xl max-h-48 overflow-y-auto"
                                             >
                                                 {cityResults.map((loc, i) => (
                                                     <li 
@@ -732,10 +745,10 @@ export default function TheGate({ onSubmit }: TheGateProps) {
                                                             setCityQuery(`${loc.name}, ${loc.country}`);
                                                             setCityResults([]);
                                                         }}
-                                                        className={`px-4 py-3 hover:bg-[#00FF41] hover:text-black cursor-pointer text-sm border-b border-white/5 last:border-none transition-colors flex items-center ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'}`}
+                                                        className={`px-4 py-3 hover:bg-[#00FF41] hover:text-black cursor-pointer text-xs border-b border-white/10 last:border-none transition-colors flex items-center font-mono ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'}`}
                                                     >
-                                                        <span className="font-medium">{loc.name}</span>
-                                                        <span className="text-xs opacity-60">{loc.country}</span>
+                                                        <span className="font-bold">{loc.name}</span>
+                                                        <span className="opacity-60">{loc.country}</span>
                                                     </li>
                                                 ))}
                                             </motion.ul>
@@ -752,9 +765,9 @@ export default function TheGate({ onSubmit }: TheGateProps) {
                         <motion.div 
                             initial={{ opacity: 0, height: 0 }}
                             animate={{ opacity: 1, height: 'auto' }}
-                            className="text-[#FF3333] text-xs text-center font-mono bg-[#FF3333]/10 py-3 rounded-lg border border-[#FF3333]/30"
+                            className="text-[#FF3333] text-xs text-center font-mono bg-[#FF3333]/10 py-3 border border-[#FF3333]/30"
                         >
-                            {error}
+                            {`> ERROR: ${error}`}
                         </motion.div>
                     )}
                 </AnimatePresence>
@@ -763,7 +776,7 @@ export default function TheGate({ onSubmit }: TheGateProps) {
                   whileTap={{ scale: 0.98 }}
                   type="submit"
                   disabled={isLoading}
-                  className="ios-btn-accent mt-6 flex items-center justify-center gap-2 disabled:opacity-50 w-full py-4 text-base font-bold relative z-10"
+                  className="w-full bg-[#00FF41] text-black font-bold py-4 uppercase tracking-widest hover:bg-white transition-colors flex items-center justify-center gap-2 disabled:opacity-50 mt-6"
                 >
                   {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : (mode === 'NEW' ? t('init') : t('login_btn'))}
                 </motion.button>
@@ -775,7 +788,7 @@ export default function TheGate({ onSubmit }: TheGateProps) {
                             setMode(mode === 'NEW' ? 'LOGIN' : 'NEW');
                             setError(null);
                         }}
-                        className="text-[#86868B] text-xs hover:text-white transition-colors flex items-center justify-center gap-1 mx-auto"
+                        className="text-[#86868B] text-[10px] hover:text-[#00FF41] transition-colors flex items-center justify-center gap-2 mx-auto uppercase tracking-widest font-mono"
                     >
                         {mode === 'NEW' ? (
                             <><Database className="w-3 h-3" /> {t('switch_login')}</>
@@ -788,8 +801,8 @@ export default function TheGate({ onSubmit }: TheGateProps) {
               </form>
             </div>
             
-            <p className="text-center text-[#86868B] text-[10px] mt-8 uppercase tracking-widest opacity-50 relative z-10">
-                Secure Connection • End-to-End Encryption
+            <p className="text-center text-[#86868B] text-[9px] mt-8 uppercase tracking-widest opacity-30 relative z-10 font-mono">
+                ENCRYPTED CONNECTION :: PORT 443
             </p>
           </motion.div>
         )}
