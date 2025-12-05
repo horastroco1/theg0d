@@ -2,6 +2,7 @@
 
 import axios from 'axios';
 import { GOD_SYSTEM_PROMPT, FALLBACK_MESSAGES, GOD_PROTOCOL } from '@/lib/godRules';
+import { GOD_KNOWLEDGE_BASE } from '@/lib/godProtocol'; // New Import
 
 // Support both GEMINI_API_KEY (Server) and NEXT_PUBLIC_GEMINI_API_KEY (Legacy/Client fallback if misconfigured)
 // NOTE: Semantically this is now the OPENROUTER_API_KEY, but we keep the name to avoid breaking existing .env setups
@@ -129,6 +130,8 @@ export async function generateGodResponse(
         - When they are arrogant, attack their FATAL FLAW.
         - When they are weak, validate their CORE STRENGTH.
         - Hint that you know their SECRET OBSESSION.
+
+        ${GOD_KNOWLEDGE_BASE}
   
         --- GOLDEN ALGORITHMS (ASTROLOGY LOGIC) ---
         Apply these rules strictly as System Status updates:

@@ -223,6 +223,10 @@ export const astrologyService = {
       // 6. PSYCHOLOGICAL PROFILING (The Soul Scanner)
       const psychology = getPsychologicalProfile(planets, planetHouses);
 
+  // 7. LIFE PATTERN MATCHING (The God Protocol)
+      // Future implementation: matchLifePatterns(planets, houses, currentDasha)
+      // For now, we reserve this slot.
+
       return {
           ascendant: ascendantName,
           moon_sign: moonName,
