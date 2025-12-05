@@ -265,6 +265,19 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
     const rawText = overrideText || input;
     if (!rawText.trim() || isTyping) return;
 
+    // GOD MODE CHEAT CODE
+    if (rawText === 'GOD_MODE_UNLIMITED') {
+        audioService.play('init');
+        setEnergy(9999);
+        setIsPremiumMode(true);
+        setInput('');
+        setMessages(prev => [...prev, 
+            { id: generateId(), text: "GOD_MODE_UNLIMITED", sender: 'user' },
+            { id: generateId(), text: "SYSTEM OVERRIDE ACCEPTED. INFINITE ENERGY GRANTED. PREMIUM BANDWIDTH UNLOCKED.", sender: 'god' }
+        ]);
+        return;
+    }
+
     if (!security.checkRateLimit('chat_msg', 10, 60)) {
         audioService.play('error');
         setMessages(prev => [...prev, { id: generateId(), text: "SYSTEM ALERT: RATE LIMIT EXCEEDED.", sender: 'god' }]);
