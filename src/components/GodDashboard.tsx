@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Activity, Coins, X, Sparkles, Battery, Zap, Lock, Copy, Share2, Terminal, User, Settings, LogOut, AlertTriangle, Eye } from 'lucide-react';
+import { Send, Activity, Coins, X, Sparkles, Battery, Zap, Lock, Copy, Share2, Terminal, User, Settings, LogOut, AlertTriangle, Eye, Radio } from 'lucide-react';
 import { astrologyService, HoroscopeData } from '@/services/astrologyService';
 import { generateGodResponse } from '@/app/actions/generateGodResponse';
 import { security } from '@/lib/security';
@@ -91,6 +91,7 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
   const [isTyping, setIsTyping] = useState(false);
   const [isPremiumMode, setIsPremiumMode] = useState(false); 
   const [adminClicks, setAdminClicks] = useState(0); 
+  const [broadcastMessage, setBroadcastMessage] = useState<string | null>(null); // NEW: Broadcast state
   const router = useRouter();
   
   const [userLang, setUserLang] = useState('en');
@@ -161,6 +162,19 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
         // AUTO-SHOW KARMIC ALERT IF PATTERNS EXIST
         if (data.karmic_patterns && data.karmic_patterns.length > 0) {
             setTimeout(() => setShowKarmicModal(true), 2000);
+        }
+
+        // CHECK FOR BROADCASTS
+        const { data: activeBroadcast } = await supabase
+            .from('broadcasts')
+            .select('message')
+            .eq('is_active', true)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
+        
+        if (activeBroadcast) {
+            setBroadcastMessage(activeBroadcast.message);
         }
 
         if (finalUserData.identity_key) {
@@ -348,10 +362,6 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
       }
   };
 
-  // FOUNDATION: Minimalist Message Bubble
-  // For RTL: We ensure flex-direction is correct, but also text-align.
-  // Tailwind's 'rtl' modifiers work well if dir="rtl" is set on body.
-  
   return (
     <div className="flex flex-col h-[100dvh] bg-[#050505] text-[#F5F5F7] font-sans overflow-hidden" style={{ height: '100dvh' }}>
       
@@ -468,6 +478,28 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
             </button>
         </form>
       </div>
+
+      {/* --- BROADCAST MODAL --- */}
+      <AnimatePresence>
+        {broadcastMessage && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[200] bg-black/95 backdrop-blur-xl flex items-center justify-center p-6">
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white/5 border border-white/20 p-8 max-w-lg text-center relative shadow-[0_0_100px_rgba(255,255,255,0.1)]">
+                <div className="w-16 h-16 border border-white/20 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
+                    <Radio className="w-8 h-8 text-white" />
+                </div>
+                <h2 className="text-xl font-bold text-white tracking-[0.3em] uppercase mb-4">Divine Intervention</h2>
+                <p className="text-white/80 font-mono text-sm leading-relaxed mb-8">{broadcastMessage}</p>
+                
+                <button 
+                    onClick={() => setBroadcastMessage(null)}
+                    className="w-full bg-white text-black font-bold py-4 uppercase tracking-[0.2em] hover:bg-[#E5E5E5] transition-colors"
+                >
+                    Acknowledge Signal
+                </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* --- PAYMENT MODAL --- */}
       <AnimatePresence>
