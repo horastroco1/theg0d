@@ -29,20 +29,20 @@ We are cutting the cord on the API's Dasha logic. We will build our own engine.
 1. **Nakshatra Map**: Define the 27 Nakshatras and their Lords (Ke, Ve, Su, Mo, Ma, Ra, Ju, Sa, Me).
 2. **Find Start**:
 
- - `Nakshatra Index = Floor(MoonLon / 13.3333)`
- - `Lord = Lords[Index % 9]`
- - `Elapsed in Nakshatra = (MoonLon % 13.3333) / 13.3333`
- - `Balance of Dasha = (1 - Elapsed) * YearsOfLord`
+- `Nakshatra Index = Floor(MoonLon / 13.3333)`
+- `Lord = Lords[Index % 9]`
+- `Elapsed in Nakshatra = (MoonLon % 13.3333) / 13.3333`
+- `Balance of Dasha = (1 - Elapsed) * YearsOfLord`
 
 3. **Time Travel**:
 
- - Start at `birthDate`.
- - Add `Balance of Dasha`.
- - Cycle through Lords (adding their full years) until `CurrentDate < EndDate`.
+- Start at `birthDate`.
+- Add `Balance of Dasha`.
+- Cycle through Lords (adding their full years) until `CurrentDate < EndDate`.
 
 4. **Sub-Periods (Antardasha)**:
 
- - Once Mahadasha is found, subdivide it using the same planetary proportion logic.
+- Once Mahadasha is found, subdivide it using the same planetary proportion logic.
 
 ### 2. Integrate into `astrologyService.ts`
 
