@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { dashaEngine } from '@/lib/dashaEngine'; // IMPORT ENGINE
+import { matchLifePatterns, KarmicPattern } from './patternMatcher'; // IMPORT PATTERN MATCHER
 
 const API_BASE = 'https://my-astrology-api-production.up.railway.app';
 
@@ -26,6 +27,7 @@ export interface HoroscopeData {
   nakshatras?: any;
   transits?: any;
   moon_phase?: string; // New: Moon Phase
+  karmic_patterns?: KarmicPattern[]; // New: The God Protocol Output
 }
 
 const RASHI_NAMES = [
@@ -261,8 +263,7 @@ export const astrologyService = {
       const psychology = getPsychologicalProfile(planets, planetHouses);
 
       // 7. LIFE PATTERN MATCHING (The God Protocol)
-      // Future implementation: matchLifePatterns(planets, houses, currentDasha)
-      // For now, we reserve this slot.
+      const karmicPatterns = matchLifePatterns(planets, houses, planetHouses);
 
       const moonPhase = getMoonPhase(new Date().toISOString());
 
@@ -279,7 +280,8 @@ export const astrologyService = {
           isMoonChart: !!params.timeUnknown,
           raw_response: data,
           transits: transitData,
-          moon_phase: moonPhase // Pass Moon Phase
+          moon_phase: moonPhase, // Pass Moon Phase
+          karmic_patterns: karmicPatterns // Pass God Protocol Patterns
       };
     } catch (error: any) {
       console.error("API ERROR:", error);

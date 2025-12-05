@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Activity, Coins, X, Sparkles, Wifi, Battery, Zap, Lock, Copy, Share2, Terminal, User, Settings, LogOut } from 'lucide-react';
+import { Send, Activity, Coins, X, Sparkles, Wifi, Battery, Zap, Lock, Copy, Share2, Terminal, User, Settings, LogOut, AlertTriangle } from 'lucide-react';
 import { astrologyService, HoroscopeData } from '@/services/astrologyService';
 import { generateGodResponse } from '@/app/actions/generateGodResponse';
 import { security } from '@/lib/security';
@@ -12,8 +12,8 @@ import { cryptoService } from '@/lib/crypto';
 import { audioService } from '@/services/audioService';
 import { locationService } from '@/services/locationService';
 import { getTranslation } from '@/lib/translations'; 
-import { getCulturalConfig } from '@/lib/culturalConfig'; // IMPORT
-import { useRouter } from 'next/navigation'; // ROUTER FOR ADMIN
+import { getCulturalConfig } from '@/lib/culturalConfig'; 
+import { useRouter } from 'next/navigation';
 
 interface GodDashboardProps { userData: any; }
 
@@ -56,6 +56,7 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
   const [energy, setEnergy] = useState(5); 
   const [showPaymentModal, setShowPaymentModal] = useState<{show: boolean, type: PaymentType | null}>({ show: false, type: null });
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showKarmicModal, setShowKarmicModal] = useState(false); // NEW: Karmic Alert Modal
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [paymentResult, setPaymentResult] = useState<any>(null);
   const [isVerifying, setIsVerifying] = useState(false); 
@@ -63,16 +64,11 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
   const inputRef = useRef<HTMLInputElement>(null); 
   const [isTyping, setIsTyping] = useState(false);
   const [isPremiumMode, setIsPremiumMode] = useState(false); 
-  const [adminClicks, setAdminClicks] = useState(0); // ADMIN TRIGGER
+  const [adminClicks, setAdminClicks] = useState(0); 
   const router = useRouter();
   
-  // Language State
   const [userLang, setUserLang] = useState('en');
-
-  // Use Helper
   const t = (key: string) => getTranslation(userLang, key);
-  
-  // Cultural Config
   const config = getCulturalConfig(userLang);
   const accentColor = config.accentColor;
 
@@ -88,7 +84,6 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
     identity_key: null
   };
 
-  // --- Initialization Logic ---
   useEffect(() => {
     if (initializationRef.current) return;
     initializationRef.current = true;
@@ -135,6 +130,11 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
 
         setHoroscope(data);
         setLoading(false);
+
+        // AUTO-SHOW KARMIC ALERT IF PATTERNS EXIST
+        if (data.karmic_patterns && data.karmic_patterns.length > 0) {
+            setTimeout(() => setShowKarmicModal(true), 2000);
+        }
 
         if (finalUserData.identity_key) {
             console.log("🔐 DECRYPTING ARCHIVES...");
@@ -306,7 +306,6 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
       setMessages(prev => [...prev, { id: generateId(), text: "TRIBUTE ACCEPTED. PROTOCOLS UNLOCKED.", sender: 'god' }]);
   };
 
-  // ADMIN TRIGGER LOGIC
   const handleAdminTrigger = () => {
       setAdminClicks(c => c + 1);
       if (adminClicks + 1 >= 3) {
@@ -342,6 +341,16 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
         </div>
 
             <div className="flex items-center gap-4 bg-[#1C1C1E] px-4 py-2 rounded border border-white/5 font-mono">
+            
+            {/* KARMIC ALERT ICON */}
+            {horoscope?.karmic_patterns && horoscope.karmic_patterns.length > 0 && (
+                <button onClick={() => setShowKarmicModal(true)} className="text-red-500 animate-pulse hover:text-red-400 transition-colors">
+                    <AlertTriangle className="w-4 h-4" />
+                </button>
+            )}
+            
+            <div className="w-[1px] h-3 bg-white/10"></div>
+
             <div className="flex items-center gap-2">
                  <Battery className={`w-3 h-3 ${energy < 2 ? 'text-red-500 animate-pulse' : ''}`} style={{ color: energy >= 2 ? accentColor : undefined }} />
                  <span className="text-[10px] text-[#86868B]">
@@ -510,6 +519,48 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
                     </button>
                 )}
               </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* --- KARMIC ALERT MODAL --- */}
+      <AnimatePresence>
+        {showKarmicModal && horoscope?.karmic_patterns && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-xl flex items-center justify-center p-4">
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-black w-full max-w-2xl border border-red-500/50 p-8 relative shadow-[0_0_100px_rgba(255,0,0,0.2)] overflow-y-auto max-h-[80vh]">
+              <button onClick={() => setShowKarmicModal(false)} className="absolute top-4 right-4 text-[#86868B] hover:text-white"><X className="w-6 h-6" /></button>
+              
+              <div className="text-center mb-8">
+                  <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-500 animate-pulse">
+                      <AlertTriangle className="w-10 h-10 text-red-500" />
+                  </div>
+                  <h2 className="text-2xl font-bold text-red-500 tracking-widest uppercase">SYSTEM ALERT: KARMIC ANOMALY</h2>
+                  <p className="text-[#86868B] text-xs mt-2 uppercase tracking-widest">The following patterns have been detected in your source code.</p>
+              </div>
+
+              <div className="space-y-6">
+                  {horoscope.karmic_patterns.map((pattern, i) => (
+                      <div key={i} className="border border-white/10 bg-[#111] p-6 relative overflow-hidden group hover:border-red-500/50 transition-colors">
+                          <div className="absolute top-0 left-0 w-1 h-full bg-red-500"></div>
+                          <h3 className="text-lg font-bold text-white mb-2 uppercase">{pattern.id.replace('_', ' ')}</h3>
+                          <div className="space-y-4 text-sm">
+                              <div>
+                                  <span className="text-red-500 text-xs uppercase tracking-widest block mb-1">Diagnosis</span>
+                                  <p className="text-[#ccc]">{pattern.diagnosis}</p>
+                              </div>
+                              <div>
+                                  <span className="text-[#00FF41] text-xs uppercase tracking-widest block mb-1">Solution Protocol</span>
+                                  <p className="text-[#ccc]">{pattern.solution}</p>
+                              </div>
+                          </div>
+                      </div>
+                  ))}
+              </div>
+
+              <button onClick={() => setShowKarmicModal(false)} className="w-full mt-8 bg-red-500/10 border border-red-500 text-red-500 font-bold py-4 uppercase tracking-widest hover:bg-red-500 hover:text-black transition-all">
+                  ACKNOWLEDGE & DISMISS
+              </button>
             </motion.div>
           </motion.div>
         )}
