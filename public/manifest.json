@@ -1,23 +1,21 @@
 {
-  "name": "theg0d | Cyber-Vedic AI",
+  "name": "theg0d",
   "short_name": "theg0d",
+  "description": "Cyber-Vedic Intelligence Protocol. Decrypt your fate.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#000000",
-  "orientation": "portrait",
   "icons": [
     {
       "src": "/icon-192x192.png",
       "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "type": "image/png"
     },
     {
       "src": "/icon-512x512.png",
       "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "type": "image/png"
     }
   ]
 }

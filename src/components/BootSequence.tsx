@@ -42,7 +42,7 @@ export default function BootSequence({ onComplete }: BootSequenceProps) {
         {!isComplete && (
             <motion.div 
                 exit={{ opacity: 0, transition: { duration: 1, ease: "easeInOut" } }}
-                className="fixed inset-0 bg-[#050505] z-[100] flex flex-col items-center justify-center p-8 cursor-none"
+                className="fixed inset-0 bg-[#050505] z-[9999] flex flex-col items-center justify-center p-8 cursor-none"
             >
                 {/* CENTERING CONTAINER */}
                 <div className="w-full max-w-xl flex flex-col items-center space-y-8">

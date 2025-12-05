@@ -71,11 +71,15 @@ export default function TheGate({ onSubmit }: TheGateProps) {
   const config = getCulturalConfig(detectedLang);
   const accentColor = config.accentColor; 
 
+  const [isMounted, setIsMounted] = useState(false);
+
   useEffect(() => {
+    setIsMounted(true);
     const hasBooted = sessionStorage.getItem('god_boot_complete');
     if (hasBooted) {
         setBootComplete(true);
     }
+    // ... rest of useEffect
     
     const detectUserContext = async () => {
         try {
@@ -393,6 +397,8 @@ export default function TheGate({ onSubmit }: TheGateProps) {
     exit: { opacity: 0, scale: 1.05, filter: "blur(40px)", transition: { duration: 0.8 } }
   };
 
+  if (!isMounted) return <div className="bg-[#050505] min-h-screen w-full" />;
+
   return (
     <>
     {/* WARP OVERLAY */}
@@ -408,364 +414,368 @@ export default function TheGate({ onSubmit }: TheGateProps) {
         )}
     </AnimatePresence>
 
-    {!bootComplete && <BootSequence onComplete={() => {
-        setBootComplete(true);
-        sessionStorage.setItem('god_boot_complete', 'true');
-    }} />}
-    
-    <div className={`min-h-screen flex flex-col items-center justify-center relative p-6 bg-black text-[#F5F5F7] overflow-hidden font-mono ${isRTL ? 'rtl' : 'ltr'}`} dir={isRTL ? 'rtl' : 'ltr'}>
-      
-      {/* --- FOUNDATION BACKGROUND --- */}
-      {/* No Scanlines. Pure Void. */}
-      
-      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0 flex items-center justify-center opacity-10">
-        <div className="w-[800px] h-[800px] border rounded-full animate-pulse-slow" style={{ borderColor: accentColor }}></div>
-      </div>
+    {/* BOOT SEQUENCE - ONLY RENDER IF NOT COMPLETE */}
+    {!bootComplete ? (
+        <BootSequence onComplete={() => {
+            setBootComplete(true);
+            sessionStorage.setItem('god_boot_complete', 'true');
+        }} />
+    ) : (
+        // MAIN CONTENT - ONLY RENDER IF BOOT COMPLETE
+        <div className={`min-h-screen flex flex-col items-center justify-center relative p-6 bg-black text-[#F5F5F7] overflow-hidden font-mono ${isRTL ? 'rtl' : 'ltr'}`} dir={isRTL ? 'rtl' : 'ltr'}>
+          
+          {/* --- FOUNDATION BACKGROUND --- */}
+          {/* No Scanlines. Pure Void. */}
+          
+          <div className="fixed inset-0 pointer-events-none overflow-hidden z-0 flex items-center justify-center opacity-10">
+            <div className="w-[800px] h-[800px] border rounded-full animate-pulse-slow" style={{ borderColor: accentColor }}></div>
+          </div>
 
-      <div className={`absolute top-6 z-50 flex gap-4 ${isRTL ? 'left-6' : 'right-6'}`}>
-          {['en', 'es', 'fa'].map(lang => (
-              <button 
-                key={lang}
-                onClick={() => {
-                    setDetectedLang(lang);
-                    document.dir = ['fa', 'ar'].includes(lang) ? 'rtl' : 'ltr';
-                }}
-                className={`text-[10px] uppercase tracking-[0.2em] transition-all ${
-                    detectedLang === lang 
-                    ? `text-white font-bold border-b border-white pb-1` 
-                    : 'text-white/30 hover:text-white'
-                }`}
+          <div className={`absolute top-6 z-50 flex gap-4 ${isRTL ? 'left-6' : 'right-6'}`}>
+              {['en', 'es', 'fa'].map(lang => (
+                  <button 
+                    key={lang}
+                    onClick={() => {
+                        setDetectedLang(lang);
+                        document.dir = ['fa', 'ar'].includes(lang) ? 'rtl' : 'ltr';
+                    }}
+                    className={`text-[10px] uppercase tracking-[0.2em] transition-all ${
+                        detectedLang === lang 
+                        ? `text-white font-bold border-b border-white pb-1` 
+                        : 'text-white/30 hover:text-white'
+                    }`}
+                  >
+                      {lang}
+                  </button>
+              ))}
+          </div>
+
+          <AnimatePresence mode='wait'>
+            {step === 0 ? (
+              <motion.div 
+                key="intro"
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                className="text-center space-y-12 z-[60] relative pointer-events-auto"
               >
-                  {lang}
-              </button>
-          ))}
-      </div>
-
-      <AnimatePresence mode='wait'>
-        {bootComplete && step === 0 ? (
-          <motion.div 
-            key="intro"
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-            exit="exit"
-            className="text-center space-y-12 z-[60] relative pointer-events-auto"
-          >
-            <motion.div 
-              initial={{ opacity: 0, y: 40 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3, duration: 1.5, ease: "easeOut" }}
-              className="inline-block"
-            >
-              <h1 className="text-7xl md:text-9xl font-bold tracking-tighter text-white select-none mix-blend-overlay opacity-90" data-text="theg0d">
-                theg0d
-              </h1>
-            </motion.div>
-            
-            <motion.p 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 1, duration: 2 }}
-              className="uppercase tracking-[0.5em] text-xs text-white/50 font-mono"
-            >
-              {config.greeting}
-            </motion.p>
-
-            <motion.button
-              onClick={handleStart}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 1.5, type: "spring", stiffness: 100 }}
-              className="group relative text-white font-bold py-4 px-12 rounded-none overflow-hidden transition-all cursor-pointer z-[70]"
-            >
-              <div className="absolute inset-0 border border-white/20 group-hover:border-white/100 transition-colors duration-500"></div>
-              <div className="absolute inset-0 bg-white/0 group-hover:bg-white/10 transition-colors duration-500"></div>
-              
-              <span className="relative z-10 flex items-center gap-4 uppercase tracking-[0.2em] text-xs">
-                  {isRTL ? <ArrowRight className="w-3 h-3 rotate-180" /> : null}
-                  {t('enter')} 
-                  {!isRTL ? <ArrowRight className="w-3 h-3" /> : null}
-              </span>
-            </motion.button>
-          </motion.div>
-        ) : generatedKey ? (
-           // --- KEY DISPLAY STEP ---
-           <motion.div
-             key="key-display"
-             variants={containerVariants}
-             initial="hidden"
-             animate="visible"
-             className="w-full max-w-md z-10 relative"
-           >
-             <div className="foundation-glass p-12 text-center space-y-8 relative">
-                <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto border border-white/20 bg-white/5">
-                    <Key className="w-8 h-8 text-white" />
-                </div>
+                <motion.div 
+                  initial={{ opacity: 0, y: 40 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3, duration: 1.5, ease: "easeOut" }}
+                  className="inline-block"
+                >
+                  <h1 className="text-7xl md:text-9xl font-bold tracking-tighter text-white select-none mix-blend-overlay opacity-90" data-text="theg0d">
+                    theg0d
+                  </h1>
+                </motion.div>
                 
-                <div>
-                    <h3 className="text-3xl font-bold text-white mb-4 tracking-tight">{t('access_granted')}</h3>
-                    <p className="text-white/50 text-xs uppercase tracking-widest leading-relaxed">
-                        {t('identity_key_generated')}
-                        <br/>
-                        <span className="text-red-500 block mt-2">
-                            {t('do_not_lose')}
-                        </span>
+                <motion.p 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 1, duration: 2 }}
+                  className="uppercase tracking-[0.5em] text-xs text-white/50 font-mono"
+                >
+                  {config.greeting}
+                </motion.p>
+
+                <motion.button
+                  onClick={handleStart}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 1.5, type: "spring", stiffness: 100 }}
+                  className="group relative text-white font-bold py-4 px-12 rounded-none overflow-hidden transition-all cursor-pointer z-[70]"
+                >
+                  <div className="absolute inset-0 border border-white/20 group-hover:border-white/100 transition-colors duration-500"></div>
+                  <div className="absolute inset-0 bg-white/0 group-hover:bg-white/10 transition-colors duration-500"></div>
+                  
+                  <span className="relative z-10 flex items-center gap-4 uppercase tracking-[0.2em] text-xs">
+                      {isRTL ? <ArrowRight className="w-3 h-3 rotate-180" /> : null}
+                      {t('enter')} 
+                      {!isRTL ? <ArrowRight className="w-3 h-3" /> : null}
+                  </span>
+                </motion.button>
+              </motion.div>
+            ) : generatedKey ? (
+               // --- KEY DISPLAY STEP ---
+               <motion.div
+                 key="key-display"
+                 variants={containerVariants}
+                 initial="hidden"
+                 animate="visible"
+                 className="w-full max-w-md z-10 relative"
+               >
+                 <div className="foundation-glass p-12 text-center space-y-8 relative">
+                    <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto border border-white/20 bg-white/5">
+                        <Key className="w-8 h-8 text-white" />
+                    </div>
+                    
+                    <div>
+                        <h3 className="text-3xl font-bold text-white mb-4 tracking-tight">{t('access_granted')}</h3>
+                        <p className="text-white/50 text-xs uppercase tracking-widest leading-relaxed">
+                            {t('identity_key_generated')}
+                            <br/>
+                            <span className="text-red-500 block mt-2">
+                                {t('do_not_lose')}
+                            </span>
+                        </p>
+                    </div>
+
+                    <div 
+                        onClick={copyKey}
+                        className="foundation-input text-center cursor-pointer hover:bg-white/10 flex items-center justify-between group"
+                    >
+                        <span className="relative z-10 font-mono text-sm tracking-[0.2em]">{generatedKey}</span>
+                        <Copy className="w-4 h-4 opacity-50 group-hover:opacity-100 transition-opacity" />
+                    </div>
+
+                    <button
+                        onClick={proceedWithKey}
+                        className="foundation-btn"
+                    >
+                        {t('enter')}
+                    </button>
+                 </div>
+               </motion.div>
+            ) : (
+              // --- FORM STEP ---
+              <motion.div 
+                key="form"
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+                className="w-full max-w-md z-10 relative"
+              >
+                <div className="foundation-glass p-10 relative overflow-hidden">
+                  
+                  <div className="mb-10 text-center relative z-10">
+                    <h2 className="text-2xl font-bold tracking-tight text-white uppercase">
+                        {mode === 'NEW' ? t('identity') : t('login_title')}
+                    </h2>
+                    <p className="text-white/40 text-[10px] mt-3 uppercase tracking-[0.2em]">
+                        {mode === 'NEW' ? t('init_karmic_profile') : t('enter_identity_key')}
                     </p>
-                </div>
+                  </div>
 
-                <div 
-                    onClick={copyKey}
-                    className="foundation-input text-center cursor-pointer hover:bg-white/10 flex items-center justify-between group"
-                >
-                    <span className="relative z-10 font-mono text-sm tracking-[0.2em]">{generatedKey}</span>
-                    <Copy className="w-4 h-4 opacity-50 group-hover:opacity-100 transition-opacity" />
-                </div>
-
-                <button
-                    onClick={proceedWithKey}
-                    className="foundation-btn"
-                >
-                    {t('enter')}
-                </button>
-             </div>
-           </motion.div>
-        ) : (
-          // --- FORM STEP ---
-          <motion.div 
-            key="form"
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-            className="w-full max-w-md z-10 relative"
-          >
-            <div className="foundation-glass p-10 relative overflow-hidden">
-              
-              <div className="mb-10 text-center relative z-10">
-                <h2 className="text-2xl font-bold tracking-tight text-white uppercase">
-                    {mode === 'NEW' ? t('identity') : t('login_title')}
-                </h2>
-                <p className="text-white/40 text-[10px] mt-3 uppercase tracking-[0.2em]">
-                    {mode === 'NEW' ? t('init_karmic_profile') : t('enter_identity_key')}
-                </p>
-              </div>
-
-              <form onSubmit={handleSubmit} className="space-y-6 relative z-10">
-                
-                {mode === 'LOGIN' ? (
-                     // --- LOGIN INPUT (KEY) ---
-                     <div className="relative group">
-                        <input 
-                            type="text" 
-                            value={loginKey}
-                            onChange={e => setLoginKey(e.target.value)}
-                            placeholder="G0D-XXXX-XXXX" 
-                            className="foundation-input text-center"
-                            autoFocus
-                        />
-                     </div>
-                ) : (
-                    // --- SIGNUP INPUTS ---
-                    <>
-                        <div className="relative group">
+                  <form onSubmit={handleSubmit} className="space-y-6 relative z-10">
+                    
+                    {mode === 'LOGIN' ? (
+                         // --- LOGIN INPUT (KEY) ---
+                         <div className="relative group">
                             <input 
                                 type="text" 
-                                value={name}
-                                onChange={e => setName(e.target.value)}
-                                placeholder={t('name')} 
-                                className="foundation-input"
+                                value={loginKey}
+                                onChange={e => setLoginKey(e.target.value)}
+                                placeholder="G0D-XXXX-XXXX" 
+                                className="foundation-input text-center"
                                 autoFocus
                             />
-                        </div>
+                         </div>
+                    ) : (
+                        // --- SIGNUP INPUTS ---
+                        <>
+                            <div className="relative group">
+                                <input 
+                                    type="text" 
+                                    value={name}
+                                    onChange={e => setName(e.target.value)}
+                                    placeholder={t('name')} 
+                                    className="foundation-input"
+                                    autoFocus
+                                />
+                            </div>
 
-                        <AnimatePresence>
+                            <AnimatePresence>
+                                <motion.div 
+                                    initial={{ opacity: 0, height: 0 }}
+                                    animate={{ opacity: 1, height: 'auto' }}
+                                    exit={{ opacity: 0, height: 0 }}
+                                    className="space-y-6 overflow-visible"
+                                >
+                                    {/* DATE SPLIT INPUTS */}
+                                    <div className="flex gap-4">
+                                        <input 
+                                            type="tel" 
+                                            pattern="[0-9]*"
+                                            value={day} 
+                                            onChange={e => handleDateChange('d', e.target.value)}
+                                            placeholder="DD"
+                                            maxLength={2}
+                                            className="foundation-input text-center w-1/3"
+                                        />
+                                        <input 
+                                            ref={monthRef} 
+                                            type="tel" 
+                                            pattern="[0-9]*"
+                                            value={month} 
+                                            onChange={e => handleDateChange('m', e.target.value)}
+                                            placeholder="MM"
+                                            maxLength={2}
+                                            className="foundation-input text-center w-1/3"
+                                        />
+                                        <input 
+                                            ref={yearRef} 
+                                            type="tel" 
+                                            pattern="[0-9]*"
+                                            value={year} 
+                                            onChange={e => handleDateChange('y', e.target.value)}
+                                            placeholder="YYYY"
+                                            maxLength={4}
+                                            className="foundation-input text-center w-1/3"
+                                        />
+                                    </div>
+                                    
+                                    {/* TIME INPUT */}
+                                    <div className="flex gap-4 items-center">
+                                        <div className="relative flex-1">
+                                            <input 
+                                                type="time" 
+                                                value={time}
+                                                disabled={timeUnknown}
+                                                onChange={e => setTime(e.target.value)}
+                                                className={`foundation-input text-center ${timeUnknown ? 'opacity-30' : ''}`}
+                                            />
+                                        </div>
+                                        <div className="flex items-center gap-2 min-w-[120px]">
+                                            <input 
+                                                type="checkbox" 
+                                                id="timeUnknown"
+                                                checked={timeUnknown}
+                                                onChange={e => setTimeUnknown(e.target.checked)}
+                                                className="w-4 h-4 cursor-pointer accent-white"
+                                            />
+                                            <label htmlFor="timeUnknown" className="text-[10px] text-white/60 cursor-pointer select-none uppercase tracking-widest">
+                                                {t('time_unknown')}
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    {/* GENDER SELECTOR */}
+                                    <div className="flex gap-0 border border-white/10">
+                                        {['male', 'female', 'other'].map((g) => (
+                                            <button
+                                                key={g}
+                                                type="button"
+                                                onClick={() => setGender(g)}
+                                                className={`flex-1 py-4 text-[10px] font-bold uppercase tracking-widest transition-all ${
+                                                    gender === g 
+                                                    ? 'bg-white text-black' 
+                                                    : 'bg-transparent text-white/40 hover:text-white'
+                                                }`}
+                                            >
+                                                {g === 'male' && t('gender_m')}
+                                                {g === 'female' && t('gender_f')}
+                                                {g === 'other' && t('gender_o')}
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    {/* LOCATION INPUT */}
+                                    <div className="relative z-[60]">
+                                        <input 
+                                            type="text" 
+                                            value={cityQuery}
+                                            onChange={e => {
+                                                setCityQuery(e.target.value);
+                                                setSelectedLocation(null);
+                                            }}
+                                            placeholder={t('city')} 
+                                            className="foundation-input"
+                                        />
+                                        
+                                        {cityQuery && (
+                                            <button 
+                                                type="button"
+                                                onClick={() => { setCityQuery(''); setSelectedLocation(null); }}
+                                                className={`absolute top-5 text-white/40 hover:text-white ${isRTL ? 'left-4' : 'right-4'}`}
+                                            >
+                                                <X className="w-4 h-4" />
+                                            </button>
+                                        )}
+
+                                        {isSearching && (
+                                            <div className={`absolute top-5 ${isRTL ? 'left-10' : 'right-10'}`}>
+                                                <Loader2 className="w-4 h-4 animate-spin text-white" />
+                                            </div>
+                                        )}
+
+                                        <AnimatePresence>
+                                            {cityResults.length > 0 && !selectedLocation && (
+                                                <motion.ul 
+                                                    initial={{ opacity: 0, y: -10 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    exit={{ opacity: 0 }}
+                                                    className="absolute top-full left-0 w-full mt-0 bg-[#0A0A0A] border border-white/10 z-[70] shadow-2xl max-h-48 overflow-y-auto"
+                                                >
+                                                    {cityResults.map((loc, i) => (
+                                                        <li 
+                                                            key={i}
+                                                            onClick={() => {
+                                                                setSelectedLocation(loc);
+                                                                setCityQuery(`${loc.name}, ${loc.country}`);
+                                                                setCityResults([]);
+                                                            }}
+                                                            className={`px-6 py-4 hover:bg-white/5 cursor-pointer text-xs border-b border-white/5 last:border-none transition-colors flex items-center font-mono ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'}`}
+                                                        >
+                                                            <span className="font-bold text-white">{loc.name}</span>
+                                                            <span className="opacity-40">{loc.country}</span>
+                                                        </li>
+                                                    ))}
+                                                </motion.ul>
+                                            )}
+                                        </AnimatePresence>
+                                    </div>
+                                </motion.div>
+                            </AnimatePresence>
+                        </>
+                    )}
+
+                    <AnimatePresence>
+                        {error && (
                             <motion.div 
                                 initial={{ opacity: 0, height: 0 }}
                                 animate={{ opacity: 1, height: 'auto' }}
-                                exit={{ opacity: 0, height: 0 }}
-                                className="space-y-6 overflow-visible"
+                                className="text-red-500 text-xs text-center uppercase tracking-widest py-2"
                             >
-                                {/* DATE SPLIT INPUTS */}
-                                <div className="flex gap-4">
-                                    <input 
-                                        type="tel" 
-                                        pattern="[0-9]*"
-                                        value={day} 
-                                        onChange={e => handleDateChange('d', e.target.value)}
-                                        placeholder="DD"
-                                        maxLength={2}
-                                        className="foundation-input text-center w-1/3"
-                                    />
-                                    <input 
-                                        ref={monthRef} 
-                                        type="tel" 
-                                        pattern="[0-9]*"
-                                        value={month} 
-                                        onChange={e => handleDateChange('m', e.target.value)}
-                                        placeholder="MM"
-                                        maxLength={2}
-                                        className="foundation-input text-center w-1/3"
-                                    />
-                                    <input 
-                                        ref={yearRef} 
-                                        type="tel" 
-                                        pattern="[0-9]*"
-                                        value={year} 
-                                        onChange={e => handleDateChange('y', e.target.value)}
-                                        placeholder="YYYY"
-                                        maxLength={4}
-                                        className="foundation-input text-center w-1/3"
-                                    />
-                                </div>
-                                
-                                {/* TIME INPUT */}
-                                <div className="flex gap-4 items-center">
-                                    <div className="relative flex-1">
-                                        <input 
-                                            type="time" 
-                                            value={time}
-                                            disabled={timeUnknown}
-                                            onChange={e => setTime(e.target.value)}
-                                            className={`foundation-input text-center ${timeUnknown ? 'opacity-30' : ''}`}
-                                        />
-                                    </div>
-                                    <div className="flex items-center gap-2 min-w-[120px]">
-                                        <input 
-                                            type="checkbox" 
-                                            id="timeUnknown"
-                                            checked={timeUnknown}
-                                            onChange={e => setTimeUnknown(e.target.checked)}
-                                            className="w-4 h-4 cursor-pointer accent-white"
-                                        />
-                                        <label htmlFor="timeUnknown" className="text-[10px] text-white/60 cursor-pointer select-none uppercase tracking-widest">
-                                            {t('time_unknown')}
-                                        </label>
-                                    </div>
-                                </div>
-
-                                {/* GENDER SELECTOR */}
-                                <div className="flex gap-0 border border-white/10">
-                                    {['male', 'female', 'other'].map((g) => (
-                                        <button
-                                            key={g}
-                                            type="button"
-                                            onClick={() => setGender(g)}
-                                            className={`flex-1 py-4 text-[10px] font-bold uppercase tracking-widest transition-all ${
-                                                gender === g 
-                                                ? 'bg-white text-black' 
-                                                : 'bg-transparent text-white/40 hover:text-white'
-                                            }`}
-                                        >
-                                            {g === 'male' && t('gender_m')}
-                                            {g === 'female' && t('gender_f')}
-                                            {g === 'other' && t('gender_o')}
-                                        </button>
-                                    ))}
-                                </div>
-
-                                {/* LOCATION INPUT */}
-                                <div className="relative z-[60]">
-                                    <input 
-                                        type="text" 
-                                        value={cityQuery}
-                                        onChange={e => {
-                                            setCityQuery(e.target.value);
-                                            setSelectedLocation(null);
-                                        }}
-                                        placeholder={t('city')} 
-                                        className="foundation-input"
-                                    />
-                                    
-                                    {cityQuery && (
-                                        <button 
-                                            type="button"
-                                            onClick={() => { setCityQuery(''); setSelectedLocation(null); }}
-                                            className={`absolute top-5 text-white/40 hover:text-white ${isRTL ? 'left-4' : 'right-4'}`}
-                                        >
-                                            <X className="w-4 h-4" />
-                                        </button>
-                                    )}
-
-                                    {isSearching && (
-                                        <div className={`absolute top-5 ${isRTL ? 'left-10' : 'right-10'}`}>
-                                            <Loader2 className="w-4 h-4 animate-spin text-white" />
-                                        </div>
-                                    )}
-
-                                    <AnimatePresence>
-                                        {cityResults.length > 0 && !selectedLocation && (
-                                            <motion.ul 
-                                                initial={{ opacity: 0, y: -10 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                exit={{ opacity: 0 }}
-                                                className="absolute top-full left-0 w-full mt-0 bg-[#0A0A0A] border border-white/10 z-[70] shadow-2xl max-h-48 overflow-y-auto"
-                                            >
-                                                {cityResults.map((loc, i) => (
-                                                    <li 
-                                                        key={i}
-                                                        onClick={() => {
-                                                            setSelectedLocation(loc);
-                                                            setCityQuery(`${loc.name}, ${loc.country}`);
-                                                            setCityResults([]);
-                                                        }}
-                                                        className={`px-6 py-4 hover:bg-white/5 cursor-pointer text-xs border-b border-white/5 last:border-none transition-colors flex items-center font-mono ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'}`}
-                                                    >
-                                                        <span className="font-bold text-white">{loc.name}</span>
-                                                        <span className="opacity-40">{loc.country}</span>
-                                                    </li>
-                                                ))}
-                                            </motion.ul>
-                                        )}
-                                    </AnimatePresence>
-                                </div>
+                                {`// ERROR: ${error}`}
                             </motion.div>
-                        </AnimatePresence>
-                    </>
-                )}
+                        )}
+                    </AnimatePresence>
 
-                <AnimatePresence>
-                    {error && (
-                        <motion.div 
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: 'auto' }}
-                            className="text-red-500 text-xs text-center uppercase tracking-widest py-2"
-                        >
-                            {`// ERROR: ${error}`}
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-
-                <motion.button
-                  whileTap={{ scale: 0.98 }}
-                  type="submit"
-                  disabled={isLoading}
-                  className="foundation-btn mt-8"
-                >
-                  {isLoading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : (mode === 'NEW' ? t('init') : t('login_btn'))}
-                </motion.button>
-
-                <div className="text-center pt-6 relative z-10">
-                    <button 
-                        type="button"
-                        onClick={() => {
-                            setMode(mode === 'NEW' ? 'LOGIN' : 'NEW');
-                            setError(null);
-                        }}
-                        className="foundation-btn-ghost"
+                    <motion.button
+                      whileTap={{ scale: 0.98 }}
+                      type="submit"
+                      disabled={isLoading}
+                      className="foundation-btn mt-8"
                     >
-                        {mode === 'NEW' ? t('switch_login') : t('switch_new')}
-                    </button>
-                </div>
+                      {isLoading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : (mode === 'NEW' ? t('init') : t('login_btn'))}
+                    </motion.button>
 
-              </form>
-            </div>
-            
-            <p className="text-center text-white/20 text-[9px] mt-8 uppercase tracking-[0.3em] relative z-10 font-mono">
-                SECURE LINK :: ENCRYPTED
-            </p>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+                    <div className="text-center pt-6 relative z-10">
+                        <button 
+                            type="button"
+                            onClick={() => {
+                                setMode(mode === 'NEW' ? 'LOGIN' : 'NEW');
+                                setError(null);
+                            }}
+                            className="foundation-btn-ghost"
+                        >
+                            {mode === 'NEW' ? t('switch_login') : t('switch_new')}
+                        </button>
+                    </div>
+
+                  </form>
+                </div>
+                
+                <p className="text-center text-white/20 text-[9px] mt-8 uppercase tracking-[0.3em] relative z-10 font-mono">
+                    SECURE LINK :: ENCRYPTED
+                </p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+    )}
     </>
   );
 }

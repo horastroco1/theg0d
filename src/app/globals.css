@@ -33,7 +33,7 @@
 }
 
 body {
-  background-color: var(--bg-void);
+  background-color: #050505; /* Force Deep Void */
   color: var(--color-starlight);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;

@@ -14,6 +14,7 @@ import { locationService } from '@/services/locationService';
 import { getTranslation } from '@/lib/translations'; 
 import { getCulturalConfig } from '@/lib/culturalConfig'; 
 import { useRouter } from 'next/navigation';
+import InstallPrompt from './InstallPrompt';
 
 interface GodDashboardProps { userData: any; }
 
@@ -365,6 +366,9 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
   return (
     <div className="flex flex-col h-[100dvh] bg-[#050505] text-[#F5F5F7] font-sans overflow-hidden" style={{ height: '100dvh' }}>
       
+      {/* --- VIRAL IMPLANT --- */}
+      <InstallPrompt />
+
       {/* --- HEADER (FOUNDATION STYLE) --- */}
       <div className="pt-6 pb-4 px-8 flex justify-between items-center z-50 sticky top-0 flex-shrink-0 bg-gradient-to-b from-[#050505] to-transparent">
         <div className="flex items-center gap-4">
