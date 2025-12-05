@@ -29,7 +29,7 @@ export const metadata: Metadata = {
     siteName: 'theg0d',
     images: [
       {
-        url: '/og-image.jpg', // We will need to add this image
+        url: '/og-image.jpg',
         width: 1200,
         height: 630,
         alt: 'theg0d interface',
@@ -49,6 +49,9 @@ export const metadata: Metadata = {
     shortcut: '/icon-192x192.png',
     apple: '/icon-192x192.png',
   },
+  other: {
+    'cache-control': 'no-store, max-age=0', // Force Cache Bust
+  }
 };
 
 export default function RootLayout({
