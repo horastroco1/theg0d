@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Download, Share, PlusSquare, X, Smartphone } from 'lucide-react';
+import { Download, Share, PlusSquare, X, Smartphone, Monitor } from 'lucide-react';
 
 export default function InstallPrompt() {
   const [showPrompt, setShowPrompt] = useState(false);
@@ -12,22 +12,34 @@ export default function InstallPrompt() {
   useEffect(() => {
     // 1. Check if already installed
     if (window.matchMedia('(display-mode: standalone)').matches) {
-        return; // Already installed
+        return; 
     }
 
-    // 2. Detect Platform
+    // 2. Check if dismissed recently (24h)
+    const dismissed = localStorage.getItem('god_install_dismissed');
+    if (dismissed) {
+        const dismissedTime = parseInt(dismissed);
+        const now = Date.now();
+        if (now - dismissedTime < 24 * 60 * 60 * 1000) {
+            return; 
+        }
+    }
+
+    // 3. Detect Platform
     const userAgent = window.navigator.userAgent.toLowerCase();
     if (/iphone|ipad|ipod/.test(userAgent)) {
         setPlatform('IOS');
-        // iOS doesn't have a native prompt event, so we show ours after a delay
-        setTimeout(() => setShowPrompt(true), 15000); // Show after 15s
+        // Show iOS prompt after 5s
+        setTimeout(() => setShowPrompt(true), 5000); 
     } else if (/android/.test(userAgent)) {
         setPlatform('ANDROID');
     } else {
         setPlatform('DESKTOP');
+        // Show Desktop prompt after 8s
+        setTimeout(() => setShowPrompt(true), 8000);
     }
 
-    // 3. Listen for Chrome/Android install event
+    // 4. Listen for Chrome/Android install event
     const handleBeforeInstallPrompt = (e: Event) => {
         e.preventDefault();
         setDeferredPrompt(e);
@@ -39,6 +51,11 @@ export default function InstallPrompt() {
     return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
   }, []);
 
+  const handleDismiss = () => {
+      setShowPrompt(false);
+      localStorage.setItem('god_install_dismissed', Date.now().toString());
+  };
+
   const handleInstall = async () => {
       if (deferredPrompt) {
           deferredPrompt.prompt();
@@ -47,6 +64,8 @@ export default function InstallPrompt() {
               setShowPrompt(false);
           }
           setDeferredPrompt(null);
+      } else {
+          alert("To install: Click the 'Install' or 'Share' icon in your browser address bar.");
       }
   };
 
@@ -58,41 +77,43 @@ export default function InstallPrompt() {
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 50 }}
-            className="fixed bottom-6 left-6 right-6 z-[9999] md:right-auto md:max-w-sm"
+            className="fixed bottom-6 left-6 right-6 z-[9999] md:right-6 md:left-auto md:w-96"
         >
-            <div className="bg-[#0A0A0A]/90 backdrop-blur-xl border border-[#FFD700]/30 p-6 relative shadow-[0_0_30px_rgba(255,215,0,0.1)]">
+            <div className="bg-[#050505]/95 backdrop-blur-xl border border-[#FFD700]/30 p-6 relative shadow-[0_0_50px_rgba(255,215,0,0.15)]">
                 <button 
-                    onClick={() => setShowPrompt(false)}
-                    className="absolute top-2 right-2 text-white/30 hover:text-white"
+                    onClick={handleDismiss}
+                    className="absolute top-3 right-3 text-white/30 hover:text-white transition-colors"
                 >
                     <X className="w-4 h-4" />
                 </button>
 
                 <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 bg-[#FFD700]/10 rounded border border-[#FFD700]/30 flex items-center justify-center shrink-0 animate-pulse">
-                        <Smartphone className="w-6 h-6 text-[#FFD700]" />
+                    <div className="w-14 h-14 bg-[#FFD700]/5 rounded-none border border-[#FFD700]/30 flex items-center justify-center shrink-0 animate-pulse">
+                        {platform === 'DESKTOP' ? <Monitor className="w-6 h-6 text-[#FFD700]" /> : <Smartphone className="w-6 h-6 text-[#FFD700]" />}
                     </div>
-                    <div className="space-y-2">
-                        <h3 className="text-sm font-bold text-white uppercase tracking-[0.2em]">System Upgrade</h3>
-                        <p className="text-[10px] text-white/60 font-mono leading-relaxed">
-                            Establish a permanent neural link for faster access and offline data.
-                        </p>
+                    <div className="space-y-3 flex-1">
+                        <div>
+                            <h3 className="text-xs font-bold text-white uppercase tracking-[0.2em]">Artifact Available</h3>
+                            <p className="text-[10px] text-white/60 font-mono mt-1 leading-relaxed">
+                                Install the Neural Interface for offline access and zero latency.
+                            </p>
+                        </div>
                         
                         {platform === 'IOS' ? (
-                            <div className="space-y-2 pt-2">
-                                <div className="flex items-center gap-2 text-[10px] text-white/80">
-                                    <span className="bg-white/10 p-1 rounded"><Share className="w-3 h-3" /></span>
-                                    <span>1. Tap Share Button</span>
+                            <div className="space-y-2 pt-1 border-t border-white/10">
+                                <div className="flex items-center gap-2 text-[9px] text-white/80 uppercase tracking-widest">
+                                    <Share className="w-3 h-3" />
+                                    <span>1. Tap Share</span>
                                 </div>
-                                <div className="flex items-center gap-2 text-[10px] text-white/80">
-                                    <span className="bg-white/10 p-1 rounded"><PlusSquare className="w-3 h-3" /></span>
-                                    <span>2. Add to Home Screen</span>
+                                <div className="flex items-center gap-2 text-[9px] text-white/80 uppercase tracking-widest">
+                                    <PlusSquare className="w-3 h-3" />
+                                    <span>2. Add to Home</span>
                                 </div>
                             </div>
                         ) : (
                             <button 
                                 onClick={handleInstall}
-                                className="mt-2 w-full bg-white text-black text-[10px] font-bold py-3 uppercase tracking-[0.2em] hover:bg-[#E5E5E5] flex items-center justify-center gap-2"
+                                className="w-full bg-white text-black text-[10px] font-bold py-3 uppercase tracking-[0.2em] hover:bg-[#FFD700] transition-colors flex items-center justify-center gap-2"
                             >
                                 <Download className="w-3 h-3" /> Install Protocol
                             </button>
@@ -104,4 +125,3 @@ export default function InstallPrompt() {
     </AnimatePresence>
   );
 }
-

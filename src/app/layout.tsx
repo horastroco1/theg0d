@@ -45,9 +45,9 @@ export const metadata: Metadata = {
     images: ['/og-image.jpg'],
   },
   icons: {
-    icon: '/icon-192x192.png',
-    shortcut: '/icon-192x192.png',
-    apple: '/icon-192x192.png',
+    icon: '/icon-512x512.png',
+    shortcut: '/icon-512x512.png',
+    apple: '/icon-512x512.png',
   },
   other: {
     'cache-control': 'no-store, max-age=0', // Force Cache Bust
