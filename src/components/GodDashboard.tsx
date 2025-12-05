@@ -279,6 +279,19 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
         return;
     }
 
+    // GOD MODE RESET
+    if (rawText === 'GOD_MODE_RESET') {
+        audioService.play('error');
+        setEnergy(5);
+        setIsPremiumMode(false);
+        setInput('');
+        setMessages(prev => [...prev,
+            { id: generateId(), text: "GOD_MODE_RESET", sender: 'user' },
+            { id: generateId(), text: "SYSTEM RESET. ENERGY DRAINED. PREMIUM BANDWIDTH LOCKED.", sender: 'god' }
+        ]);
+        return;
+    }
+
     if (!security.checkRateLimit('chat_msg', 10, 60)) {
         audioService.play('error');
         setMessages(prev => [...prev, { id: generateId(), text: "SYSTEM ALERT: RATE LIMIT EXCEEDED.", sender: 'god' }]);
@@ -576,11 +589,18 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
                          </div>
                          <div className="space-y-4">
                               <p className="text-xs text-white uppercase tracking-widest">{t('send_amount')} {paymentResult.amount} {paymentResult.pay_currency.toUpperCase()}</p>
-                              <div 
-                                 onClick={() => navigator.clipboard.writeText(paymentResult.pay_address)}
-                                 className="p-4 border border-white/10 text-[10px] font-mono text-white/70 break-all cursor-pointer hover:bg-white/5 transition-all text-center"
-                              >
-                                 {paymentResult.pay_address}
+                              <div className="relative group cursor-pointer" onClick={() => {
+                                  navigator.clipboard.writeText(paymentResult.pay_address);
+                                  // Optional: Add toast notification here
+                              }}>
+                                  <div className="p-4 border border-white/10 text-[10px] font-mono text-white/70 break-all hover:bg-white/5 transition-all text-center group-hover:text-white group-hover:border-white/30">
+                                      {paymentResult.pay_address}
+                                  </div>
+                                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/50 backdrop-blur-sm">
+                                      <span className="text-[10px] uppercase tracking-widest text-white flex items-center gap-2">
+                                          <Copy className="w-3 h-3" /> {t('click_to_copy') || "CLICK TO COPY"}
+                                      </span>
+                                  </div>
                               </div>
                          </div>
                          <button 
