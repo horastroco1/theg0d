@@ -136,7 +136,8 @@ export const astrologyService = {
         time_zone: params.timezone,
         varga: 'D1,D9',
         nesting: '2', 
-        infolevel: 'basic'
+        infolevel: 'basic',
+        ayanamsa: '1' // FORCE LAHIRI (SIDEREAL)
       });
 
       const url = `${API_BASE}/api/calculate?${queryParams.toString()}`;
@@ -158,7 +159,8 @@ export const astrologyService = {
         time_zone: params.timezone,
         varga: 'D1',
         nesting: '0',
-        infolevel: 'basic'
+        infolevel: 'basic',
+        ayanamsa: '1'
       });
 
       const transitUrl = `${API_BASE}/api/calculate?${transitParams.toString()}`;
@@ -189,8 +191,13 @@ export const astrologyService = {
       Object.entries(planets).forEach(([key, val]: [string, any]) => {
          const planetSign = val.rashi;
          // Calculate distance from Ascendant
-         let houseNum = (planetSign - ascendantNum + 1);
-         if (houseNum <= 0) houseNum += 12;
+         let houseNum = (planetSign - ascendantNum + 12) % 12 + 1;
+         // Correction: Rashi starts at 1, Ascendant starts at 1.
+         // Example: Asc=7 (Libra), Planet=6 (Virgo).
+         // (6 - 7 + 12) % 12 + 1 = (11) % 12 + 1 = 12. Correct.
+         // Example: Asc=7, Planet=7.
+         // (7 - 7 + 12) % 12 + 1 = 1. Correct.
+         
          planetHouses[key] = houseNum;
       });
 
