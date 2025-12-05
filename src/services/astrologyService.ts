@@ -188,15 +188,22 @@ export const astrologyService = {
       // Adjustment: 1-based indexing means we simply subtract (Asc - 1) from Planet
       const planetHouses: Record<string, number> = {};
       
+      console.log(`🔮 HOUSE DEBUG START: Ascendant is Sign #${ascendantNum} (${ascendantName})`);
+
       Object.entries(planets).forEach(([key, val]: [string, any]) => {
          const planetSign = val.rashi;
-         // Calculate distance from Ascendant
-         let houseNum = (planetSign - ascendantNum + 12) % 12 + 1;
-         // Correction: Rashi starts at 1, Ascendant starts at 1.
-         // Example: Asc=7 (Libra), Planet=6 (Virgo).
-         // (6 - 7 + 12) % 12 + 1 = (11) % 12 + 1 = 12. Correct.
-         // Example: Asc=7, Planet=7.
-         // (7 - 7 + 12) % 12 + 1 = 1. Correct.
+         // Correct Strict Whole Sign Logic:
+         // Distance from Ascendant Sign to Planet Sign
+         // Example: Asc=10 (Cap), Planet=10 (Cap) -> (10 - 10 + 1) = 1.
+         // Example: Asc=10 (Cap), Planet=7 (Lib) -> (7 - 10 + 1) = -2 + 12 = 10.
+         
+         let houseNum = (planetSign - ascendantNum + 1);
+         if (houseNum <= 0) houseNum += 12;
+         
+         // Verify logic with console log for critical planets
+         if (key === 'Sa' || key === 'Ju') {
+             console.log(`🪐 ${key}: Sign #${planetSign} | Asc #${ascendantNum} | Calc House: ${houseNum}`);
+         }
          
          planetHouses[key] = houseNum;
       });

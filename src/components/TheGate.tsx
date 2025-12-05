@@ -432,24 +432,7 @@ export default function TheGate({ onSubmit }: TheGateProps) {
             <div className="w-[800px] h-[800px] border rounded-full animate-pulse-slow" style={{ borderColor: accentColor }}></div>
           </div>
 
-          <div className={`absolute top-6 z-50 flex gap-4 ${isRTL ? 'left-6' : 'right-6'}`}>
-              {['en', 'es', 'fa'].map(lang => (
-                  <button 
-                    key={lang}
-                    onClick={() => {
-                        setDetectedLang(lang);
-                        document.dir = ['fa', 'ar'].includes(lang) ? 'rtl' : 'ltr';
-                    }}
-                    className={`text-[10px] uppercase tracking-[0.2em] transition-all ${
-                        detectedLang === lang 
-                        ? `text-white font-bold border-b border-white pb-1` 
-                        : 'text-white/30 hover:text-white'
-                    }`}
-                  >
-                      {lang}
-                  </button>
-              ))}
-          </div>
+          {/* REMOVED LANGUAGE BUTTONS - LOCATION BASED ONLY */}
 
           <AnimatePresence mode='wait'>
             {step === 0 ? (
