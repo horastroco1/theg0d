@@ -257,12 +257,13 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
   const handleSend = async (e: React.FormEvent | null, overrideText?: string) => {
     if (e) e.preventDefault();
     
-    if (energy <= 0) {
+    const rawText = overrideText || input;
+    
+    if (energy <= 0 && rawText !== 'GOD_MODE_UNLIMITED') {
         setShowPaymentModal({ show: true, type: 'RECHARGE' });
         return;
     }
 
-    const rawText = overrideText || input;
     if (!rawText.trim() || isTyping) return;
 
     // GOD MODE CHEAT CODE
@@ -484,7 +485,7 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
                     value={input}
                     onChange={e => setInput(e.target.value.slice(0, 200))}
                     placeholder={isPremiumMode ? t('placeholder_premium') : (energy > 0 ? config.placeholder : t('recharge'))}
-                    disabled={energy <= 0}
+                    disabled={false}
                     maxLength={200}
                     className="foundation-input pr-24"
                     autoComplete="off"
@@ -502,7 +503,7 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
             
             <button 
                 type="submit" 
-                disabled={!input.trim() || isTyping || energy <= 0} 
+                disabled={!input.trim() || isTyping || (energy <= 0 && input !== 'GOD_MODE_UNLIMITED')} 
                 className="absolute right-[-3rem] top-1/2 -translate-y-1/2 text-white/20 hover:text-white transition-colors disabled:opacity-0 hidden md:block"
             >
                 <Send className="w-5 h-5" />
