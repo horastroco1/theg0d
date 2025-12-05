@@ -11,6 +11,7 @@ import { createClient } from '@/lib/supabase';
 import { cryptoService } from '@/lib/crypto'; 
 import { audioService } from '@/services/audioService';
 import { locationService } from '@/services/locationService';
+import { TheGodLogo } from './TheGodLogo';
 import { getTranslation } from '@/lib/translations'; 
 import { getCulturalConfig } from '@/lib/culturalConfig'; 
 import { useRouter } from 'next/navigation';
@@ -376,7 +377,7 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
             <VisualMoon phase={horoscope?.moon_phase} accentColor={accentColor} />
             
             <div>
-                <h1 className="text-sm font-bold tracking-[0.2em] uppercase text-white opacity-90">THEG0D</h1>
+                <TheGodLogo className="h-4 w-auto text-white opacity-90 mb-1" />
                 <div className="flex items-center gap-2 text-[10px] text-white/40 font-mono tracking-widest">
                     <span className="w-1 h-1 bg-white rounded-full animate-pulse"></span>
                     {finalUserData.locationName.toUpperCase()}

@@ -8,6 +8,7 @@ import { locationService, LocationData } from '@/services/locationService';
 import { supabase } from '@/lib/supabase';
 import { astrologyService } from '@/services/astrologyService';
 import BootSequence from './BootSequence';
+import { TheGodLogo } from './TheGodLogo';
 import { getTranslation } from '@/lib/translations'; 
 import { getCulturalConfig } from '@/lib/culturalConfig'; 
 
@@ -466,9 +467,7 @@ export default function TheGate({ onSubmit }: TheGateProps) {
                   transition={{ delay: 0.3, duration: 1.5, ease: "easeOut" }}
                   className="inline-block"
                 >
-                  <h1 className="text-7xl md:text-9xl font-bold tracking-tighter text-white select-none mix-blend-overlay opacity-90" data-text="theg0d">
-                    theg0d
-                  </h1>
+                  <TheGodLogo className="w-64 md:w-96 h-auto text-white opacity-90 mx-auto" />
                 </motion.div>
                 
                 <motion.p 
