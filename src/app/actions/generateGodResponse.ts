@@ -46,6 +46,13 @@ export async function generateGodResponse(
   chatHistory: ChatMessage[],
   context: GodContext
 ): Promise<string> {
+  // PHASE 17: SERVER-SIDE INPUT CHECK
+  // Check last message length to prevent API abuse
+  const lastMessage = chatHistory[chatHistory.length - 1]?.text || "";
+  if (lastMessage.length > 300) {
+      return "SYSTEM ERROR: INPUT BUFFER OVERFLOW. COMMAND REJECTED.";
+  }
+
   // LOGGING FOR DEBUGGING
   const keyStatus = GEMINI_API_KEY ? `Present (Starts with ${GEMINI_API_KEY.substring(0, 4)}...)` : 'MISSING';
   console.log(`🔮 AI ENGINE (OpenRouter): Key Status: ${keyStatus}`);

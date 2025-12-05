@@ -464,20 +464,33 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
         </div>
 
         <form onSubmit={handleSend} className="relative w-full group">
-            <input 
-                ref={inputRef}
-                type="text" 
-                value={input}
-                onChange={e => setInput(e.target.value)}
-                placeholder={isPremiumMode ? t('placeholder_premium') : (energy > 0 ? config.placeholder : t('recharge'))}
-                disabled={energy <= 0}
-                className="foundation-input"
-                autoComplete="off"
-            />
+            <div className="relative">
+                <input 
+                    ref={inputRef}
+                    type="text" 
+                    value={input}
+                    onChange={e => setInput(e.target.value.slice(0, 200))}
+                    placeholder={isPremiumMode ? t('placeholder_premium') : (energy > 0 ? config.placeholder : t('recharge'))}
+                    disabled={energy <= 0}
+                    maxLength={200}
+                    className="foundation-input pr-24"
+                    autoComplete="off"
+                />
+                
+                {/* INPUT COUNTER */}
+                {input.length > 0 && (
+                    <div className={`absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-mono tracking-widest transition-colors ${
+                        input.length > 180 ? 'text-red-500 animate-pulse' : 'text-white/20'
+                    }`}>
+                        {input.length}/200
+                    </div>
+                )}
+            </div>
+            
             <button 
                 type="submit" 
                 disabled={!input.trim() || isTyping || energy <= 0} 
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-white/20 hover:text-white transition-colors disabled:opacity-0"
+                className="absolute right-[-3rem] top-1/2 -translate-y-1/2 text-white/20 hover:text-white transition-colors disabled:opacity-0 hidden md:block"
             >
                 <Send className="w-5 h-5" />
             </button>
