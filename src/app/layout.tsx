@@ -45,8 +45,11 @@ export const metadata: Metadata = {
     images: ['/og-image.jpg'],
   },
   icons: {
-    icon: '/icon-512x512.png',
-    shortcut: '/icon-512x512.png',
+    icon: [
+      { url: '/icon.svg', type: 'image/svg+xml' },
+      { url: '/icon-512x512.png', type: 'image/png' }
+    ],
+    shortcut: '/icon.svg',
     apple: '/icon-512x512.png',
   },
   other: {
