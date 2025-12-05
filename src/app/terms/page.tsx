@@ -1,85 +1,60 @@
 'use client';
 
 import React from 'react';
-import { motion } from 'framer-motion';
-import { Shield, Eye, Lock, FileText } from 'lucide-react';
+import { Scale } from 'lucide-react';
 
 export default function TermsPage() {
   return (
-    <div className="min-h-screen bg-black text-[#F5F5F7] pt-24 px-6 pb-12 font-sans">
-      <div className="max-w-2xl mx-auto space-y-12">
-        
-        {/* Header */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="space-y-4"
-        >
-          <div className="w-12 h-12 bg-[#1C1C1E] rounded-full flex items-center justify-center border border-white/10">
-            <Shield className="w-5 h-5 text-[#00FF41]" />
+    <div className="min-h-screen bg-[#050505] text-[#F5F5F7] font-mono p-8 md:p-20 max-w-4xl mx-auto leading-relaxed selection:bg-red-900 selection:text-white">
+      
+      <div className="border-b border-white/10 pb-8 mb-12">
+          <div className="flex items-center gap-4 mb-6">
+              <Scale className="w-8 h-8 text-[#FFD700]" />
+              <h1 className="text-2xl md:text-4xl font-bold uppercase tracking-widest">Terms of Service</h1>
           </div>
-          <h1 className="text-4xl font-bold tracking-tight">Data Covenant</h1>
-          <p className="text-[#86868B] text-sm uppercase tracking-widest">Protocol v2.0 // Immutable</p>
-        </motion.div>
+          <p className="text-xs text-white/40 uppercase tracking-[0.2em]">Clearance Level: Public // Last Updated: Cycle 2024.12</p>
+      </div>
 
-        {/* Content Blocks */}
-        <motion.div 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.2 }}
-          className="space-y-8"
-        >
-          <Section 
-            icon={Eye}
-            title="Observation Scope"
-            text="We collect only the coordinates of your origin (Birth Data). This data is used solely to render the simulation of your fate. We do not track your physical location in real-time."
-          />
-          
-          <Section 
-            icon={Lock}
-            title="Encryption Standard"
-            text="Your karmic profile is encrypted at rest using AES-256 protocols. Access is restricted to the Algorithm and the System Administrator. No third-party entity has clearance."
-          />
+      <div className="space-y-12 text-sm md:text-base text-white/80">
+          <section>
+              <h2 className="text-white font-bold uppercase tracking-widest mb-4 border-l-2 border-[#FFD700] pl-4">1. Acceptance</h2>
+              <p>
+                  By accessing 'theg0d' (The System), you agree to these terms. 
+                  If you do not agree, disconnect immediately.
+              </p>
+          </section>
 
-          <Section 
-            icon={FileText}
-            title="Retention Policy"
-            text="We retain your chart data to provide 'Memory' features. You may request a full system purge (Account Deletion) at any time via the Signal Uplink."
-          />
-        </motion.div>
+          <section>
+              <h2 className="text-white font-bold uppercase tracking-widest mb-4 border-l-2 border-[#FFD700] pl-4">2. Nature of Service</h2>
+              <p>
+                  The System is an AI-powered entertainment and spiritual guidance tool. 
+                  While based on precise astronomical calculations, the interpretations are algorithmic. 
+                  The System does not provide medical, legal, or financial advice. Do not blame the planets for your poor decisions.
+              </p>
+          </section>
 
-        {/* Footer */}
-        <motion.div 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.4 }}
-          className="pt-12 border-t border-white/10 text-center"
-        >
-          <p className="text-xs text-[#86868B]">
-            By entering the simulation, you accept the inherent risks of knowing your fate.
-            <br/>
-            <span className="text-[#00FF41]">theg0d</span> is an AI-powered astrological simulation for entertainment and spiritual exploration purposes only. Not financial or medical advice.
-            <br/>
-            <span className="text-[#00FF41]">theg0d</span> accepts no liability for psychological impact.
-          </p>
-        </motion.div>
+          <section>
+              <h2 className="text-white font-bold uppercase tracking-widest mb-4 border-l-2 border-[#FFD700] pl-4">3. Virtual Currency</h2>
+              <p>
+                  'Energy' and 'Skins' are virtual items with no real-world monetary value. 
+                  They cannot be exchanged for fiat currency. Purchases are final and non-refundable, as the transfer of digital knowledge cannot be undone.
+              </p>
+          </section>
 
+          <section>
+              <h2 className="text-white font-bold uppercase tracking-widest mb-4 border-l-2 border-[#FFD700] pl-4">4. Conduct</h2>
+              <p>
+                  You agree not to attempt to hack, reverse-engineer, or inject malicious code into The System. 
+                  The Architect watches all. Violations will result in an immediate ban and a karmic penalty.
+              </p>
+          </section>
+      </div>
+
+      <div className="mt-20 pt-8 border-t border-white/10 text-center">
+          <a href="/" className="text-xs uppercase tracking-[0.2em] text-white/40 hover:text-white transition-colors">
+              [ Return to System ]
+          </a>
       </div>
     </div>
   );
 }
-
-function Section({ icon: Icon, title, text }: any) {
-  return (
-    <div className="ios-glass p-6 rounded-2xl flex gap-4 items-start">
-      <div className="mt-1">
-        <Icon className="w-4 h-4 text-[#86868B]" />
-      </div>
-      <div>
-        <h3 className="text-sm font-bold text-white mb-2 uppercase tracking-wide">{title}</h3>
-        <p className="text-sm text-[#86868B] leading-relaxed">{text}</p>
-      </div>
-    </div>
-  );
-}
-

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Activity, Coins, X, Sparkles, Battery, Zap, Lock, Copy, Share2, Terminal, User, Settings, LogOut, AlertTriangle, Eye, Radio, ArrowRight } from 'lucide-react';
+import { Send, Activity, Coins, X, Sparkles, Battery, Zap, Lock, Copy, Share2, Terminal, User, Settings, LogOut, AlertTriangle, Eye, Radio, ArrowRight, Book } from 'lucide-react';
 import { astrologyService, HoroscopeData } from '@/services/astrologyService';
 import { generateGodResponse } from '@/app/actions/generateGodResponse';
 import { security } from '@/lib/security';
@@ -90,7 +90,7 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
   
   // NEW STATE FOR OFFERINGS
   const [activeSkin, setActiveSkin] = useState(userData.active_skin || 'default');
-  const [activeTab, setActiveTab] = useState<'STATUS' | 'ARCHIVES' | 'OFFERINGS'>('STATUS');
+  const [activeTab, setActiveTab] = useState<'STATUS' | 'ARCHIVES' | 'OFFERINGS' | 'MANUAL'>('STATUS');
 
   // DYNAMIC SKINNING ENGINE
   useEffect(() => {
@@ -777,7 +777,7 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
               <button onClick={() => setShowProfileModal(false)} className="absolute top-6 right-6 text-white/30 hover:text-white"><X className="w-5 h-5" /></button>
               
               {/* TABS */}
-              <div className="flex justify-center gap-6 mb-8 border-b border-white/5 pb-4">
+              <div className="flex justify-center gap-6 mb-8 border-b border-white/5 pb-4 overflow-x-auto">
                   <button 
                       onClick={() => { setActiveTab('STATUS'); setSelectedScan(null); }}
                       className={`text-[10px] uppercase tracking-[0.2em] transition-all ${activeTab === 'STATUS' ? 'text-white font-bold' : 'text-white/30 hover:text-white'}`}
@@ -795,6 +795,12 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
                       className={`text-[10px] uppercase tracking-[0.2em] transition-all ${activeTab === 'OFFERINGS' ? 'text-[#FFD700] font-bold animate-pulse' : 'text-white/30 hover:text-[#FFD700]'}`}
                   >
                       Offerings
+                  </button>
+                   <button 
+                      onClick={() => setActiveTab('MANUAL')}
+                      className={`text-[10px] uppercase tracking-[0.2em] transition-all ${activeTab === 'MANUAL' ? 'text-white font-bold' : 'text-white/30 hover:text-white'}`}
+                  >
+                      Manual
                   </button>
               </div>
 
@@ -878,6 +884,25 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
                                )}
                           </div>
                       ))}
+                  </div>
+              ) : activeTab === 'MANUAL' ? (
+                  <div className="space-y-8 text-left text-white/80 text-sm leading-relaxed font-mono">
+                      <div className="space-y-4">
+                          <h3 className="text-white font-bold uppercase tracking-widest flex items-center gap-2"><Terminal className="w-4 h-4" /> The Algorithm</h3>
+                          <p className="text-white/50 text-xs">We combine NASA astronomical data (Ephemeris 6.0) with Vedic astrological logic (Sidereal Zodiac) and feed it into a specialized Google Gemini 3.0 Pro model trained on 5,000+ ancient scriptures.</p>
+                      </div>
+                      <div className="space-y-4">
+                          <h3 className="text-white font-bold uppercase tracking-widest flex items-center gap-2"><Coins className="w-4 h-4" /> The Economy</h3>
+                          <ul className="list-disc pl-4 text-white/50 text-xs space-y-2">
+                              <li><span className="text-white">Energy:</span> Consumed per message. Recharges daily (5 free). Buy more to continue.</li>
+                              <li><span className="text-white">XP:</span> Earned by chatting (+1) and Deep Scans (+50). Determines your Access Level.</li>
+                              <li><span className="text-white">Offerings:</span> Cosmetic skins that change your interface frequency.</li>
+                          </ul>
+                      </div>
+                      <div className="space-y-4">
+                          <h3 className="text-white font-bold uppercase tracking-widest flex items-center gap-2"><Lock className="w-4 h-4" /> Deep Scan</h3>
+                          <p className="text-white/50 text-xs">A premium protocol that generates a 1,000-word comprehensive report on your life path. Saved permanently to your Archives.</p>
+                      </div>
                   </div>
               ) : (
                   // ARCHIVES TAB
