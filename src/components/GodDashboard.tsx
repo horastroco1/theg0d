@@ -9,8 +9,9 @@ import { security } from '@/lib/security';
 import { paymentService } from '@/services/paymentService';
 import { createClient } from '@/lib/supabase';
 import { cryptoService } from '@/lib/crypto'; 
-import { audioService } from '@/services/audioService'; // IMPORT AUDIO
+import { audioService } from '@/services/audioService';
 import { locationService } from '@/services/locationService';
+import { getTranslation } from '@/lib/translations'; // Import
 
 interface GodDashboardProps { userData: any; }
 
@@ -24,7 +25,6 @@ type PaymentType = 'RECHARGE' | 'PATCH' | 'DEEP_SCAN';
 
 const generateId = () => typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).substr(2);
 
-// Typewriter Component for God's Messages
 const TypewriterEffect = ({ text, onComplete }: { text: string, onComplete?: () => void }) => {
   const [displayedText, setDisplayedText] = useState('');
   const index = useRef(0);
@@ -37,103 +37,11 @@ const TypewriterEffect = ({ text, onComplete }: { text: string, onComplete?: () 
         clearInterval(interval);
         if (onComplete) onComplete();
       }
-    }, 25); // Speed: 25ms per char
+    }, 25); 
     return () => clearInterval(interval);
   }, [text, onComplete]);
 
   return <span>{displayedText}</span>;
-};
-
-// Translation dictionary for UI
-const UI_TEXT: Record<string, any> = {
-  en: {
-    init: "Initializing Neural Link...",
-    connected: "Connected. Subject:",
-    listening: "I am listening. What is your query?",
-    placeholder: "> Enter Command...",
-    placeholderPremium: "> DEEP SCAN PROTOCOL ACTIVE...",
-    recharge: "ENERGY DEPLETED"
-  },
-  es: {
-    init: "Iniciando Enlace Neuronal...",
-    connected: "Conectado. Sujeto:",
-    listening: "Te escucho. ¿Cuál es tu consulta?",
-    placeholder: "> Comando...",
-    placeholderPremium: "> ESCANEO PROFUNDO ACTIVO...",
-    recharge: "ENERGÍA AGOTADA"
-  },
-  fr: {
-    init: "Initialisation du lien neuronal...",
-    connected: "Connecté. Sujet:",
-    listening: "Je vous écoute. Quelle est votre requête ?",
-    placeholder: "> Commande...",
-    placeholderPremium: "> SCAN PROFOND ACTIF...",
-    recharge: "ÉNERGIE ÉPUISÉE"
-  },
-  de: {
-    init: "Initialisiere Neuronalen Link...",
-    connected: "Verbunden. Subjekt:",
-    listening: "Ich höre. Was ist Ihre Anfrage?",
-    placeholder: "> Befehl eingeben...",
-    placeholderPremium: "> TIEFENSCAN AKTIV...",
-    recharge: "ENERGIE LEER"
-  },
-  pt: {
-    init: "Inicializando Link Neural...",
-    connected: "Conectado. Sujeito:",
-    listening: "Estou ouvindo. Qual é a sua consulta?",
-    placeholder: "> Comando...",
-    placeholderPremium: "> VARREDURA PROFUNDA ATIVA...",
-    recharge: "ENERGIA ESGOTADA"
-  },
-  ja: {
-    init: "ニューラルリンクを初期化中...",
-    connected: "接続完了。対象:",
-    listening: "聞いています。質問は何ですか？",
-    placeholder: "> コマンド入力...",
-    placeholderPremium: "> ディープスキャン有効...",
-    recharge: "エネルギー切れ"
-  },
-  zh: {
-    init: "正在初始化神经链接...",
-    connected: "已连接。主体：",
-    listening: "我在听。你的查询是什么？",
-    placeholder: "> 输入指令...",
-    placeholderPremium: "> 深度扫描已激活...",
-    recharge: "能量耗尽"
-  },
-  ru: {
-    init: "Инициализация нейронной связи...",
-    connected: "Подключено. Субъект:",
-    listening: "Я слушаю. Каков ваш запрос?",
-    placeholder: "> Введите команду...",
-    placeholderPremium: "> ГЛУБОКОЕ СКАНИРОВАНИЕ...",
-    recharge: "НЕТ ЭНЕРГИИ"
-  },
-  hi: {
-    init: "न्यूरल लिंक आरंभ किया जा रहा है...",
-    connected: "जुड़ा हुआ। विषय:",
-    listening: "मैं सुन रहा हूँ। आपकी क्या क्वेरी है?",
-    placeholder: "> कमांड दर्ज करें...",
-    placeholderPremium: "> डीप स्कैन सक्रिय...",
-    recharge: "ऊर्जा समाप्त"
-  },
-  ar: {
-    init: "جارٍ تهيئة الرابط العصبي...",
-    connected: "متصل. الموضوع:",
-    listening: "أنا أستمع. ما هو استفسارك؟",
-    placeholder: "> أدخل الأمر...",
-    placeholderPremium: "> المسح العميق نشط...",
-    recharge: "الطاقة نفدت"
-  },
-  fa: {
-    init: "در حال راه اندازی لینک عصبی...",
-    connected: "متصل شد. سوژه:",
-    listening: "من گوش می دهم. پرسش شما چیست؟",
-    placeholder: "> دستور را وارد کنید...",
-    placeholderPremium: "> اسکن عمیق فعال است...",
-    recharge: "اتمام انرژی"
-  }
 };
 
 export default function GodDashboard({ userData }: GodDashboardProps) {
@@ -155,16 +63,17 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
   const [isPremiumMode, setIsPremiumMode] = useState(false); 
   
   // Language State
-  const [uiText, setUiText] = useState(UI_TEXT['en']);
   const [userLang, setUserLang] = useState('en');
 
-  useEffect(() => {
-      const lang = locationService.detectUserLanguage();
-      setUserLang(lang);
-      setUiText(UI_TEXT[lang] || UI_TEXT['en']);
-  }, []);
+  // Use Helper
+  const t = (key: string) => getTranslation(userLang, key);
 
-  // Use user data or default if missing
+  useEffect(() => {
+      const lang = userData.language || locationService.detectUserLanguage();
+      setUserLang(lang);
+      document.dir = ['fa', 'ar'].includes(lang) ? 'rtl' : 'ltr';
+  }, [userData]);
+
   const finalUserData = userData || {
     name: "Subject",
     locationName: "Unknown Grid",
@@ -176,16 +85,11 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
     if (initializationRef.current) return;
     initializationRef.current = true;
 
-    // Check local storage for today's energy
     const today = new Date().toISOString().split('T')[0];
     
-    // DEV GOD MODE: Infinite Energy on Localhost
     if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
         console.log("⚡ GOD MODE ACTIVE: INFINITE ENERGY");
-        
-        // Force override local storage immediately to prevent sync issues
         localStorage.setItem(`energy_${today}`, '9999');
-        
         setEnergy(9999);
         setLoading(false);
         initializationRef.current = true;
@@ -200,19 +104,17 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
     }
 
     const init = async () => {
-      audioService.play('init'); // AUDIO: Init
-      setMessages([{ id: generateId(), text: uiText.init, sender: 'god' }]);
+      audioService.play('init'); 
+      setMessages([{ id: generateId(), text: t('init_neural'), sender: 'god' }]);
       const supabase = createClient();
 
       try {
-        // --- CHART CACHING LOGIC ---
         let data;
         
         if (userData.chart_data) {
             console.log("🔮 LOADING CHART FROM CACHE...");
             data = userData.chart_data;
             
-            // Force Refresh Dasha Logic (Fix Unsynchronized)
             if (data && data.current_dasha === 'Unsynchronized') {
                  console.log("⚠️ DETECTED STALE DASHA. RECALCULATING...");
                  const freshData = await astrologyService.calculateHoroscope(finalUserData);
@@ -226,7 +128,6 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
         setHoroscope(data);
         setLoading(false);
 
-        // --- LOAD PREVIOUS CHAT (ENCRYPTED) ---
         if (finalUserData.identity_key) {
             console.log("🔐 DECRYPTING ARCHIVES...");
             const { data: history, error } = await supabase
@@ -243,16 +144,14 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
                 }));
                 setMessages(decryptedMessages);
                 
-                // Add "Resume" message
                 setMessages(prev => [...prev, { id: generateId(), text: "CONNECTION RESTORED. I REMEMBER EVERYTHING.", sender: 'god' }]);
             } else {
-                // New Session Greetings
                 setTimeout(() => {
                     setMessages(prev => [
                         ...prev,
-                        { id: generateId(), text: `${uiText.connected} ${finalUserData.name}.`, sender: 'god' },
+                        { id: generateId(), text: `${t('connected')} ${finalUserData.name}.`, sender: 'god' },
                         { id: generateId(), text: `Moon: ${data.moon_sign} | Dasha: ${data.current_dasha}`, sender: 'god' },
-                        { id: generateId(), text: uiText.listening, sender: 'god' }
+                        { id: generateId(), text: t('listening'), sender: 'god' }
                     ]);
                 }, 1200);
             }
@@ -260,25 +159,22 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
 
       } catch (e: any) {
         setLoading(false);
-        audioService.play('error'); // AUDIO: Error
+        audioService.play('error'); 
         setMessages(prev => [...prev, { id: generateId(), text: `Connection Failed: ${e.message}`, sender: 'god' }]);
       }
     };
     init();
-  }, [finalUserData, userData.chart_data, uiText]);
+  }, [finalUserData, userData.chart_data, userLang]);
 
-  // Scroll to bottom
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping]);
 
-  // Sanity Drain
   useEffect(() => {
     const interval = setInterval(() => setSanity(s => Math.max(0, s - 0.5)), 3000);
     return () => clearInterval(interval);
   }, []);
 
-  // Update Local Storage when energy changes
   useEffect(() => {
       const today = new Date().toISOString().split('T')[0];
       localStorage.setItem(`energy_${today}`, energy.toString());
@@ -328,11 +224,10 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
     setEnergy(e => e - 1);
     inputRef.current?.focus();
     
-    audioService.play('message'); // AUDIO: User Send
+    audioService.play('message'); 
     const newHistory: Message[] = [...messages, { id: generateId(), text, sender: 'user' }];
     setMessages(newHistory);
     
-    // SAVE USER MSG (Encrypted)
     saveMessage(text, 'user');
 
     setIsTyping(true);
@@ -347,16 +242,15 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
             horoscopeData: horoscope,
             userLocation: finalUserData.locationName || "Unknown Grid",
             tier: isPremiumMode ? 'premium' : 'standard',
-            language: userLang // Pass detected language
+            language: userLang
         }
       );
       
-      if (isPremiumMode) setIsPremiumMode(false); // Consume the premium token
+      if (isPremiumMode) setIsPremiumMode(false);
       
       setMessages(prev => [...prev, { id: generateId(), text: response, sender: 'god' }]);
-      audioService.play('message'); // AUDIO: God Reply
+      audioService.play('message');
       
-      // SAVE GOD MSG (Encrypted)
       saveMessage(response, 'god');
 
     } catch (err) {
@@ -390,7 +284,6 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
 
   const confirmPayment = async () => {
       setIsVerifying(true);
-      // Fake delay to simulate blockchain verification
       await new Promise(resolve => setTimeout(resolve, 3000));
       
       setIsVerifying(false);
@@ -401,7 +294,6 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
       
       setPaymentResult(null);
       
-      // Success Sound & Feedback
       audioService.play('init');
       setMessages(prev => [...prev, { id: generateId(), text: "TRIBUTE ACCEPTED. PROTOCOLS UNLOCKED.", sender: 'god' }]);
   };
@@ -482,7 +374,6 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
                 msg.text
               )}
               
-              {/* SHARE BUTTON FOR GOD MESSAGES */}
               {msg.sender === 'god' && (
                   <button 
                     onClick={() => {
@@ -517,7 +408,7 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
       <div className="p-4 md:p-6 bg-black/90 border-t border-white/5 flex-shrink-0 z-40 w-full flex flex-col gap-3 backdrop-blur-md">
         <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1 items-center">
              <button onClick={() => setShowPaymentModal({ show: true, type: 'DEEP_SCAN' })} className="flex items-center gap-1 whitespace-nowrap px-4 py-2 bg-[#FFD700]/10 border border-[#FFD700]/30 text-[10px] font-mono text-[#FFD700] hover:bg-[#FFD700]/20 transition-all flex-shrink-0 uppercase tracking-widest">
-                <Lock className="w-3 h-3" /> DEEP SCAN ($10)
+                <Lock className="w-3 h-3" /> {t('deep_scan')}
              </button>
             {SUGGESTED_QUESTIONS.map((q, i) => (
                 <button key={i} onClick={() => handleSend(null, q)} disabled={isTyping} className="whitespace-nowrap px-4 py-2 bg-[#1C1C1E] border border-white/10 text-[10px] font-mono text-[#86868B] hover:text-[#00FF41] hover:border-[#00FF41]/30 transition-all flex-shrink-0 disabled:opacity-50 uppercase tracking-widest">
@@ -533,7 +424,7 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
                 type="text" 
                 value={input}
                 onChange={e => setInput(e.target.value)}
-                placeholder={isPremiumMode ? uiText.placeholderPremium : (energy > 0 ? uiText.placeholder : uiText.recharge)}
+                placeholder={isPremiumMode ? t('placeholder_premium') : (energy > 0 ? t('placeholder') : t('recharge'))}
                 disabled={energy <= 0}
                 className="w-full bg-transparent text-white py-4 font-mono text-base outline-none placeholder-[#333]"
                 autoComplete="off"
@@ -558,14 +449,14 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
                 </div>
                 
                 <div>
-                    <h3 className="text-xl text-white uppercase tracking-widest mb-2">System Recharge</h3>
-                    <p className="text-[#86868B] text-xs">Protocol requires energy token.</p>
+                    <h3 className="text-xl text-white uppercase tracking-widest mb-2">{t('system_recharge')}</h3>
+                    <p className="text-[#86868B] text-xs">{t('protocol_energy')}</p>
                 </div>
 
                 {paymentLoading ? (
                   <div className="py-8 flex flex-col items-center gap-4">
                       <div className="w-12 h-12 border-4 border-t-[#00FF41] border-white/10 rounded-full animate-spin"></div>
-                      <div className="text-[#00FF41] text-xs blink">GENERATING_ADDRESS...</div>
+                      <div className="text-[#00FF41] text-xs blink">{t('generating_address')}</div>
                   </div>
                 ) : paymentResult ? (
                     <div className="space-y-6">
@@ -573,7 +464,7 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
                              <img src={paymentResult.qr_code_url} alt="QR Code" className="w-40 h-40 object-contain" />
                          </div>
                          <div className="space-y-2">
-                              <p className="text-[10px] text-[#86868B] uppercase tracking-widest">SEND {paymentResult.amount} {paymentResult.pay_currency.toUpperCase()}</p>
+                              <p className="text-[10px] text-[#86868B] uppercase tracking-widest">{t('send_amount')} {paymentResult.amount} {paymentResult.pay_currency.toUpperCase()}</p>
                               <div 
                                  onClick={() => navigator.clipboard.writeText(paymentResult.pay_address)}
                                  className="bg-[#111] p-3 border border-dashed border-[#333] text-[10px] text-[#00FF41] break-all cursor-pointer hover:border-[#00FF41] transition-all text-center"
@@ -586,12 +477,12 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
                              disabled={isVerifying}
                              className="w-full bg-[#00FF41] text-black font-bold py-4 uppercase tracking-widest hover:bg-white transition-colors disabled:opacity-50"
                          >
-                             {isVerifying ? "VERIFYING..." : "CONFIRM TRANSACTION"}
+                             {isVerifying ? t('verifying') : t('confirm_tx')}
                          </button>
                     </div>
                 ) : (
                     <button onClick={handlePayment} className="w-full bg-[#00FF41] text-black font-bold py-4 uppercase tracking-widest hover:bg-white transition-colors flex items-center justify-center gap-2">
-                        <Zap className="w-4 h-4" /> INITIATE TRANSFER
+                        <Zap className="w-4 h-4" /> {t('initiate_transfer')}
                     </button>
                 )}
               </div>
@@ -619,18 +510,18 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
 
                 <div className="grid grid-cols-2 gap-4">
                     <div className="bg-[#111] p-4 rounded border border-white/5 text-center">
-                        <div className="text-[#86868B] text-[10px] uppercase mb-1">Total Energy</div>
+                        <div className="text-[#86868B] text-[10px] uppercase mb-1">{t('total_energy')}</div>
                         <div className="text-2xl font-bold text-white">{energy}</div>
                     </div>
                     <div className="bg-[#111] p-4 rounded border border-white/5 text-center">
-                        <div className="text-[#86868B] text-[10px] uppercase mb-1">Sanity Level</div>
+                        <div className="text-[#86868B] text-[10px] uppercase mb-1">{t('sanity_level')}</div>
                         <div className="text-2xl font-bold text-white">{Math.floor(sanity)}%</div>
                     </div>
                 </div>
 
                 <div className="space-y-2">
                     <button className="w-full bg-[#111] text-[#86868B] py-3 text-xs hover:bg-[#222] hover:text-white transition-colors flex items-center justify-center gap-2 border border-white/5">
-                        <Settings className="w-3 h-3" /> SYSTEM SETTINGS
+                        <Settings className="w-3 h-3" /> {t('system_settings')}
                     </button>
                     <button 
                         onClick={() => {
@@ -639,7 +530,7 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
                         }}
                         className="w-full bg-[#111] text-red-500 py-3 text-xs hover:bg-red-900/20 transition-colors flex items-center justify-center gap-2 border border-white/5"
                     >
-                        <LogOut className="w-3 h-3" /> TERMINATE SESSION
+                        <LogOut className="w-3 h-3" /> {t('terminate_session')}
                     </button>
                 </div>
               </div>
@@ -648,9 +539,9 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
         )}
       </AnimatePresence>
       
-        {/* --- FOOTER STATUS --- */}
+      {/* --- FOOTER STATUS --- */}
       <div className={`bg-black border-t border-white/5 text-[#333] text-[9px] font-mono text-center py-1 uppercase tracking-widest select-none ${horoscope?.moon_phase === 'Full Moon' ? 'text-[#FFD700] animate-pulse' : ''}`}>
-        SERVER: ONLINE | ENCRYPTION: ACTIVE | NODE: {Math.floor(Math.random() * 9999)} | MOON: {horoscope?.moon_phase || "CALCULATING"}
+        {t('server_online')} | {t('encryption_active')} | NODE: {Math.floor(Math.random() * 9999)} | {t('moon')}: {horoscope?.moon_phase || "CALCULATING"}
       </div>
     </div>
   );

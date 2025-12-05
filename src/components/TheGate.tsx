@@ -8,6 +8,7 @@ import { locationService, LocationData } from '@/services/locationService';
 import { supabase } from '@/lib/supabase';
 import { astrologyService } from '@/services/astrologyService';
 import BootSequence from './BootSequence';
+import { getTranslation } from '@/lib/translations'; // Import Translation
 
 export interface FormData {
   name: string;
@@ -63,6 +64,9 @@ export default function TheGate({ onSubmit }: TheGateProps) {
   const monthRef = useRef<HTMLInputElement>(null);
   const yearRef = useRef<HTMLInputElement>(null);
 
+  // Helper for Translation
+  const t = (key: string) => getTranslation(detectedLang, key);
+
   useEffect(() => {
     const detectUserContext = async () => {
         try {
@@ -73,33 +77,15 @@ export default function TheGate({ onSubmit }: TheGateProps) {
                 setTimeout(() => autoLogin(savedKey), 500);
             }
 
-            const response = await axios.get('https://ipapi.co/json/');
-            const country = response.data.country_code; 
-            
-            if (country === 'IR') {
-                setDetectedLang('fa');
-                document.dir = 'rtl';
-            } else if (['ES', 'MX', 'AR', 'CO'].includes(country)) {
-                setDetectedLang('es');
-                document.dir = 'ltr';
-            } else {
-                 const userLang = navigator.language || navigator.languages[0];
-                 if (userLang) {
-                    const code = userLang.split('-')[0];
-                    setDetectedLang(code);
-                    if (code === 'fa') document.dir = 'rtl';
-                    else document.dir = 'ltr';
-                 }
-            }
+            const lang = await locationService.detectUserLanguageByIP();
+            setDetectedLang(lang);
+            document.dir = ['fa', 'ar'].includes(lang) ? 'rtl' : 'ltr';
+
         } catch (e) {
-            console.warn("Geo-IP failed, using browser lang");
-            const userLang = navigator.language || navigator.languages[0];
-            if (userLang) {
-                const code = userLang.split('-')[0];
-                setDetectedLang(code);
-                if (code === 'fa') document.dir = 'rtl';
-                else document.dir = 'ltr';
-            }
+            console.warn("Auto-detect failed, using browser lang");
+            const lang = locationService.detectUserLanguage();
+            setDetectedLang(lang);
+            document.dir = ['fa', 'ar'].includes(lang) ? 'rtl' : 'ltr';
         }
     };
     detectUserContext();
@@ -111,9 +97,6 @@ export default function TheGate({ onSubmit }: TheGateProps) {
 
   const triggerWarp = async (callback: () => Promise<void>) => {
       setIsWarping(true);
-      // Play Warp Sound if available
-      // audioService.play('warp'); 
-      
       await new Promise(resolve => setTimeout(resolve, 800)); // Wait for animation
       await callback();
   };
@@ -398,26 +381,6 @@ export default function TheGate({ onSubmit }: TheGateProps) {
     exit: { opacity: 0, scale: 1.05, filter: "blur(20px)", transition: { duration: 0.5 } }
   };
 
-  const t = (key: string) => {
-    const dict: any = {
-        enter: { en: 'ENTER SYSTEM', es: 'ENTRAR AL SISTEMA', fa: 'ورود به سیستم' },
-        identity: { en: 'Identity Verification', es: 'Verificación', fa: 'تایید هویت' },
-        login_title: { en: 'Recall Archives', es: 'Recuperar Archivos', fa: 'بازیابی اطلاعات' },
-        name: { en: 'Subject Name', es: 'Nombre', fa: 'نام' },
-        city: { en: 'Birth City', es: 'Ciudad', fa: 'شهر تولد' },
-        init: { en: 'INITIALIZE', es: 'INICIALIZAR', fa: 'شروع' },
-        login_btn: { en: 'RESTORE', es: 'RESTAURAR', fa: 'بازگشت' },
-        err_name: { en: 'Name required.', es: 'Nombre requerido.', fa: 'نام الزامی است' },
-        err_fields: { en: 'All fields required.', es: 'Campos requeridos.', fa: 'همه فیلدها الزامی است' },
-        switch_login: { en: 'RETURNING SUBJECT?', es: '¿YA TIENES CUENTA?', fa: 'حساب کاربری دارید؟' },
-        switch_new: { en: 'NEW IDENTITY?', es: '¿NUEVO USUARIO?', fa: 'کاربر جدید؟' },
-        gender_m: { en: 'Male', es: 'Hombre', fa: 'مرد' },
-        gender_f: { en: 'Female', es: 'Mujer', fa: 'زن' },
-        gender_o: { en: 'Other', es: 'Otro', fa: 'سایر' },
-    };
-    return dict[key]?.[detectedLang] || dict[key]?.['en'] || key;
-  };
-
   return (
     <>
     {/* WARP OVERLAY */}
@@ -450,7 +413,10 @@ export default function TheGate({ onSubmit }: TheGateProps) {
           {['en', 'es', 'fa'].map(lang => (
               <button 
                 key={lang}
-                onClick={() => setDetectedLang(lang)}
+                onClick={() => {
+                    setDetectedLang(lang);
+                    document.dir = ['fa', 'ar'].includes(lang) ? 'rtl' : 'ltr';
+                }}
                 className={`text-[10px] uppercase tracking-widest px-2 py-1 rounded border font-mono ${
                     detectedLang === lang ? 'bg-[#00FF41] text-black border-[#00FF41]' : 'text-[#86868B] border-transparent hover:border-[#86868B]'
                 }`}
@@ -525,12 +491,12 @@ export default function TheGate({ onSubmit }: TheGateProps) {
                 </div>
                 
                 <div>
-                    <h3 className="text-2xl font-bold text-white mb-2 font-mono">ACCESS GRANTED</h3>
+                    <h3 className="text-2xl font-bold text-white mb-2 font-mono">{t('access_granted')}</h3>
                     <p className="text-[#86868B] text-xs font-mono">
-                        {isRTL ? "این کلید هویت شماست. آن را ذخیره کنید." : "IDENTITY KEY GENERATED. SAVE IT."}
+                        {t('identity_key_generated')}
                         <br/>
                         <span className="text-[#FF3333] uppercase font-bold animate-pulse">
-                            {isRTL ? "بدون آن دسترسی به سیستم ممکن نیست." : "DO NOT LOSE THIS KEY."}
+                            {t('do_not_lose')}
                         </span>
                     </p>
                 </div>
@@ -548,7 +514,7 @@ export default function TheGate({ onSubmit }: TheGateProps) {
                     onClick={proceedWithKey}
                     className="w-full bg-[#00FF41] text-black font-bold py-4 font-mono hover:bg-white transition-colors"
                 >
-                    {isRTL ? "ورود به سیستم" : "ENTER SYSTEM"}
+                    {t('enter')}
                 </button>
              </div>
            </motion.div>
@@ -569,7 +535,7 @@ export default function TheGate({ onSubmit }: TheGateProps) {
                     {mode === 'NEW' ? t('identity') : t('login_title')}
                 </h2>
                 <p className="text-[#86868B] text-xs mt-2 font-mono">
-                    {mode === 'NEW' ? (isRTL ? "پروفایل کارمیک خود را بسازید" : "INITIALIZE KARMIC PROFILE") : (isRTL ? "کلید خود را وارد کنید" : "ENTER IDENTITY KEY")}
+                    {mode === 'NEW' ? t('init_karmic_profile') : t('enter_identity_key')}
                 </p>
               </div>
 
@@ -672,7 +638,7 @@ export default function TheGate({ onSubmit }: TheGateProps) {
                                             className="w-4 h-4 accent-[#00FF41] rounded cursor-pointer bg-black border-white/20"
                                         />
                                         <label htmlFor="timeUnknown" className="text-[10px] text-[#86868B] cursor-pointer select-none font-mono whitespace-nowrap uppercase">
-                                            {isRTL ? "زمان نامشخص" : "TIME UNKNOWN"}
+                                            {t('time_unknown')}
                                         </label>
                                     </div>
                                 </div>
