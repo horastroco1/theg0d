@@ -68,7 +68,18 @@ export default function TheGate({ onSubmit }: TheGateProps) {
   useEffect(() => {
     const detectUserContext = async () => {
         try {
-            // 1. Try IP Geolocation first
+            // 1. Check LocalStorage for Auto-Login
+            const savedKey = localStorage.getItem('god_identity_key');
+            if (savedKey) {
+                setLoginKey(savedKey);
+                setMode('LOGIN');
+                // Auto-trigger login logic is tricky inside useEffect due to dependency cycles.
+                // We will set a flag or just let the user click "Restore" pre-filled.
+                // For true auto-login:
+                setTimeout(() => autoLogin(savedKey), 500);
+            }
+
+            // 2. Try IP Geolocation first
             const response = await axios.get('https://ipapi.co/json/');
             const country = response.data.country_code; 
             
@@ -105,6 +116,44 @@ export default function TheGate({ onSubmit }: TheGateProps) {
   useEffect(() => {
       document.dir = isRTL ? 'rtl' : 'ltr';
   }, [isRTL]);
+
+  const autoLogin = async (key: string) => {
+      setIsLoading(true);
+      try {
+          const { data: users, error: fetchError } = await supabase
+              .from('users')
+              .select('*')
+              .eq('identity_key', key.trim())
+              .limit(1);
+          
+          if (fetchError || !users || users.length === 0) {
+              // Invalid key in storage - clear it
+              localStorage.removeItem('god_identity_key');
+              throw new Error("Session Expired.");
+          }
+
+          const user = users[0];
+          await onSubmit({
+              name: user.name,
+              date: user.birth_date,
+              time: user.birth_time,
+              timeUnknown: user.birth_time === '12:00',
+              latitude: user.latitude,
+              longitude: user.longitude,
+              timezone: user.timezone,
+              locationName: user.birth_place,
+              language: detectedLang,
+              gender: user.gender || 'unknown',
+              chart_data: user.chart_data,
+              identity_key: user.identity_key
+          });
+      } catch (err: any) {
+          setIsLoading(false);
+          // Don't show error for auto-login, just reset to manual
+          console.log("Auto-login failed:", err.message);
+          setMode('NEW'); 
+      }
+  };
 
   // Fixed Location Search Logic
   useEffect(() => {
@@ -194,7 +243,10 @@ export default function TheGate({ onSubmit }: TheGateProps) {
                 throw new Error("Invalid Identity Key. Access Denied.");
             }
 
-            const user = users[0];
+            
+            // SAVE TO LOCAL STORAGE
+            if (user.identity_key) localStorage.setItem('god_identity_key', user.identity_key);
+
             await onSubmit({
                 name: user.name,
                 date: user.birth_date,
@@ -275,6 +327,9 @@ export default function TheGate({ onSubmit }: TheGateProps) {
 
       // GENERATE IDENTITY KEY
       const newIdentityKey = `G0D-${Math.random().toString(36).substr(2, 4).toUpperCase()}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`;
+      
+      // SAVE TO LOCAL STORAGE IMMEDIATELY
+      localStorage.setItem('god_identity_key', newIdentityKey);
 
       const { error: dbError } = await supabase
         .from('users')
