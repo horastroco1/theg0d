@@ -20,6 +20,12 @@ export interface GodContext {
   language?: string;
 }
 
+export interface PsychologicalProfile {
+    strength: string;
+    weakness: string;
+    obsession: string;
+}
+
 function getRandomFallback() {
   return FALLBACK_MESSAGES[Math.floor(Math.random() * FALLBACK_MESSAGES.length)];
 }
@@ -64,6 +70,7 @@ export async function generateGodResponse(
       const transits = horoscopeData?.transits || {};
       const nakshatras = horoscopeData?.nakshatras || {};
       const computedHits = horoscopeData?.computed_hits || []; // New: Hits from Code
+      const psychology = horoscopeData?.psychology || { strength: "Unknown", weakness: "Unknown", obsession: "Unknown" };
 
       const planetSummary = Object.entries(planets).map(([key, val]: [string, any]) => {
         const nakshatraInfo = nakshatras[key] ? `(Nakshatra: ${nakshatras[key].name}, Pada: ${nakshatras[key].pada})` : '';
@@ -112,6 +119,16 @@ export async function generateGodResponse(
         ${houseSummary}
 
         ${hitsSummary}
+
+        --- SUBJECT PSYCHOLOGICAL PROFILE (USE THIS TO MANIPULATE) ---
+        CORE STRENGTH: ${psychology.strength}
+        FATAL FLAW (SATURN): ${psychology.weakness}
+        SECRET OBSESSION (RAHU): ${psychology.obsession}
+
+        INSTRUCTION:
+        - When they are arrogant, attack their FATAL FLAW.
+        - When they are weak, validate their CORE STRENGTH.
+        - Hint that you know their SECRET OBSESSION.
   
         --- GOLDEN ALGORITHMS (ASTROLOGY LOGIC) ---
         Apply these rules strictly as System Status updates:

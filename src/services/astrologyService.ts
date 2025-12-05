@@ -20,6 +20,7 @@ export interface HoroscopeData {
   houses?: any; 
   planet_houses?: any; // New: Calculated houses for each planet
   computed_hits?: string[]; // New: Calculated "Vedic Hits"
+  psychology?: { strength: string; weakness: string; obsession: string }; // New: Soul Profile
   isMoonChart: boolean;
   raw_response?: any;
   nakshatras?: any;
@@ -30,6 +31,49 @@ const RASHI_NAMES = [
   "Unknown", "Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo", 
   "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"
 ];
+
+// Helper for Psychic Profiling
+const getPsychologicalProfile = (planets: any, planetHouses: any) => {
+    const profile = {
+        strength: "Unknown Resilience",
+        weakness: "Hidden Insecurity",
+        obsession: "Unidentified Hunger"
+    };
+
+    // 1. STRENGTH (Sun Sign)
+    const sunSign = RASHI_NAMES[planets.Su?.rashi] || "Unknown";
+    const strengthMap: Record<string, string> = {
+        "Aries": "Unstoppable Initiative", "Taurus": "Immovable Will", "Gemini": "Rapid Intelligence",
+        "Cancer": "Emotional Depth", "Leo": "Natural Sovereignty", "Virgo": "Flawless Precision",
+        "Libra": "Strategic Charm", "Scorpio": "Psychic Power", "Sagittarius": "Limitless Vision",
+        "Capricorn": "Architectural Ambition", "Aquarius": "Radical Innovation", "Pisces": "Universal Empathy"
+    };
+    profile.strength = strengthMap[sunSign] || "Latent Potential";
+
+    // 2. WEAKNESS (Saturn House)
+    const saturnHouse = planetHouses['Sa'];
+    if (saturnHouse) {
+        const weaknessMap: Record<number, string> = {
+            1: "Crippling Self-Doubt", 2: "Fear of Poverty", 3: "Silence/Isolation", 4: "Inner Void",
+            5: "Creative Block", 6: "Victim Mentality", 7: "Fear of Intimacy", 8: "Fear of Death/Loss",
+            9: "Crisis of Faith", 10: "Fear of Failure", 11: "Social Anxiety", 12: "Subconscious Sabotage"
+        };
+        profile.weakness = weaknessMap[saturnHouse] || "Hidden Fear";
+    }
+
+    // 3. OBSESSION (Rahu House)
+    const rahuHouse = planetHouses['Ra'];
+    if (rahuHouse) {
+        const obsessionMap: Record<number, string> = {
+            1: "Obsession with Self-Image", 2: "Greed for Wealth", 3: "Lust for Fame", 4: "Desire for Luxury",
+            5: "Obsession with Legacy", 6: "Need for Victory", 7: "Addiction to Relationships", 8: "Occult Curiosity",
+            9: "Fanatical Beliefs", 10: "Thirst for Power", 11: "Desire for Network", 12: "Escapism"
+        };
+        profile.obsession = obsessionMap[rahuHouse] || "Secret Desire";
+    }
+
+    return profile;
+};
 
 export const astrologyService = {
   calculateHoroscope: async (params: AstrologyParams): Promise<HoroscopeData> => {
@@ -176,6 +220,9 @@ export const astrologyService = {
           }
       }
 
+      // 6. PSYCHOLOGICAL PROFILING (The Soul Scanner)
+      const psychology = getPsychologicalProfile(planets, planetHouses);
+
       return {
           ascendant: ascendantName,
           moon_sign: moonName,
@@ -184,6 +231,7 @@ export const astrologyService = {
           houses: houses,
           planet_houses: planetHouses, // Pass Calculated Houses
           computed_hits: computedHits, // Pass Calculated Hits
+          psychology: psychology, // Pass Soul Profile
           nakshatras: nakshatras,
           isMoonChart: !!params.timeUnknown,
           raw_response: data,
