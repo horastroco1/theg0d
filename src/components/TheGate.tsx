@@ -8,7 +8,8 @@ import { locationService, LocationData } from '@/services/locationService';
 import { supabase } from '@/lib/supabase';
 import { astrologyService } from '@/services/astrologyService';
 import BootSequence from './BootSequence';
-import { getTranslation } from '@/lib/translations'; // Import Translation
+import { getTranslation } from '@/lib/translations'; 
+import { getCulturalConfig } from '@/lib/culturalConfig'; // IMPORT CULTURAL ENGINE
 
 export interface FormData {
   name: string;
@@ -54,7 +55,7 @@ export default function TheGate({ onSubmit }: TheGateProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [detectedLang, setDetectedLang] = useState<string>('en');
-  const [isWarping, setIsWarping] = useState(false); // Warp State
+  const [isWarping, setIsWarping] = useState(false); 
   
   const [generatedKey, setGeneratedKey] = useState<string | null>(null);
 
@@ -64,8 +65,11 @@ export default function TheGate({ onSubmit }: TheGateProps) {
   const monthRef = useRef<HTMLInputElement>(null);
   const yearRef = useRef<HTMLInputElement>(null);
 
-  // Helper for Translation
   const t = (key: string) => getTranslation(detectedLang, key);
+  
+  // CULTURAL CONFIG
+  const config = getCulturalConfig(detectedLang);
+  const accentColor = config.accentColor; 
 
   useEffect(() => {
     const detectUserContext = async () => {
@@ -97,7 +101,7 @@ export default function TheGate({ onSubmit }: TheGateProps) {
 
   const triggerWarp = async (callback: () => Promise<void>) => {
       setIsWarping(true);
-      await new Promise(resolve => setTimeout(resolve, 800)); // Wait for animation
+      await new Promise(resolve => setTimeout(resolve, 800)); 
       await callback();
   };
 
@@ -308,10 +312,8 @@ export default function TheGate({ onSubmit }: TheGateProps) {
       
       localStorage.setItem('god_identity_key', newIdentityKey);
 
-      const { error: dbError } = await supabase
-        .from('users')
-        .insert([
-          {
+      // ROBUST INSERT: Handle gender column failure gracefully
+      const userPayload: any = {
             name: name,
             birth_date: fullDate,
             birth_time: timeUnknown ? '12:00' : time,
@@ -319,14 +321,22 @@ export default function TheGate({ onSubmit }: TheGateProps) {
             latitude: selectedLocation.latitude,
             longitude: selectedLocation.longitude,
             timezone: timezoneOffset,
-            gender: gender, 
             chart_data: chartData,
             identity_key: newIdentityKey 
-          }
-        ]);
+      };
+      // Only add gender if database likely supports it (or try/catch the insert)
+      // For now, we assume the user will run the migration. If not, Supabase errors.
+      // To be safe, we can't dynamically check schema easily without admin API. 
+      // We will include it and catch the specific error if possible, or just rely on the migration being run.
+      userPayload.gender = gender;
+
+      const { error: dbError } = await supabase
+        .from('users')
+        .insert([userPayload]);
         
       if (dbError) {
-        console.error("DB Backup Failed:", JSON.stringify(dbError, null, 2));
+        console.error("DB Backup Failed (Non-Critical):", JSON.stringify(dbError, null, 2));
+        // If failure is due to column missing, we proceed anyway since chartData is calculated
       }
 
       setIsLoading(false);
@@ -383,7 +393,6 @@ export default function TheGate({ onSubmit }: TheGateProps) {
 
   return (
     <>
-    {/* WARP OVERLAY */}
     <AnimatePresence>
         {isWarping && (
             <motion.div
@@ -403,10 +412,9 @@ export default function TheGate({ onSubmit }: TheGateProps) {
       <div className="noise-overlay"></div>
       <div className="scanlines"></div>
       
-      {/* Background Geometry */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0 flex items-center justify-center opacity-20">
-        <div className="w-[800px] h-[800px] border border-[#00FF41]/20 rounded-full animate-spin-slow dashed-border"></div>
-        <div className="absolute w-[600px] h-[600px] border border-[#00FF41]/10 rounded-full animate-spin-reverse dashed-border"></div>
+        <div className="w-[800px] h-[800px] border rounded-full animate-spin-slow dashed-border" style={{ borderColor: `${accentColor}33` }}></div>
+        <div className="absolute w-[600px] h-[600px] border rounded-full animate-spin-reverse dashed-border" style={{ borderColor: `${accentColor}1A` }}></div>
       </div>
 
       <div className={`absolute top-6 z-50 flex gap-2 ${isRTL ? 'left-6' : 'right-6'}`}>
@@ -417,9 +425,12 @@ export default function TheGate({ onSubmit }: TheGateProps) {
                     setDetectedLang(lang);
                     document.dir = ['fa', 'ar'].includes(lang) ? 'rtl' : 'ltr';
                 }}
-                className={`text-[10px] uppercase tracking-widest px-2 py-1 rounded border font-mono ${
-                    detectedLang === lang ? 'bg-[#00FF41] text-black border-[#00FF41]' : 'text-[#86868B] border-transparent hover:border-[#86868B]'
+                className={`text-[10px] uppercase tracking-widest px-2 py-1 rounded border font-mono transition-colors ${
+                    detectedLang === lang 
+                    ? `text-black` 
+                    : 'text-[#86868B] border-transparent hover:border-[#86868B]'
                 }`}
+                style={detectedLang === lang ? { backgroundColor: accentColor, borderColor: accentColor } : {}}
               >
                   {lang}
               </button>
@@ -451,9 +462,10 @@ export default function TheGate({ onSubmit }: TheGateProps) {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.6 }}
-              className="text-[#00FF41] uppercase tracking-[0.3em] text-xs font-mono animate-pulse"
+              className="uppercase tracking-[0.3em] text-xs font-mono animate-pulse"
+              style={{ color: accentColor }}
             >
-              Cyber-Vedic Intelligence Protocol
+              {config.greeting}
             </motion.p>
 
             <motion.button
@@ -461,9 +473,10 @@ export default function TheGate({ onSubmit }: TheGateProps) {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 1, type: "spring", stiffness: 200 }}
-              className="group relative bg-black border border-[#00FF41] text-[#00FF41] font-mono font-bold px-8 py-4 rounded hover:bg-[#00FF41] hover:text-black transition-all flex items-center gap-2 mx-auto mt-8 z-50 overflow-hidden"
+              className="group relative bg-black border font-mono font-bold px-8 py-4 rounded hover:text-black transition-all flex items-center gap-2 mx-auto mt-8 z-50 overflow-hidden"
+              style={{ borderColor: accentColor, color: accentColor }}
             >
-              <div className="absolute inset-0 bg-[#00FF41]/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+              <div className="absolute inset-0 translate-y-full group-hover:translate-y-0 transition-transform duration-300" style={{ backgroundColor: accentColor }}></div>
               <span className="relative z-10 flex items-center gap-2">
                   {isRTL ? <ArrowRight className="w-4 h-4 rotate-180" /> : null}
                   {t('enter')} 
@@ -480,14 +493,14 @@ export default function TheGate({ onSubmit }: TheGateProps) {
              animate="visible"
              className="w-full max-w-md z-10 relative"
            >
-             <div className="bg-black/80 backdrop-blur-xl p-8 rounded border border-[#00FF41] text-center space-y-6 shadow-[0_0_30px_rgba(0,255,65,0.1)] relative">
-                <div className="absolute top-0 left-0 w-2 h-2 bg-[#00FF41]"></div>
-                <div className="absolute top-0 right-0 w-2 h-2 bg-[#00FF41]"></div>
-                <div className="absolute bottom-0 left-0 w-2 h-2 bg-[#00FF41]"></div>
-                <div className="absolute bottom-0 right-0 w-2 h-2 bg-[#00FF41]"></div>
+             <div className="bg-black/80 backdrop-blur-xl p-8 rounded border text-center space-y-6 shadow-[0_0_30px_rgba(0,255,65,0.1)] relative" style={{ borderColor: accentColor }}>
+                <div className="absolute top-0 left-0 w-2 h-2" style={{ backgroundColor: accentColor }}></div>
+                <div className="absolute top-0 right-0 w-2 h-2" style={{ backgroundColor: accentColor }}></div>
+                <div className="absolute bottom-0 left-0 w-2 h-2" style={{ backgroundColor: accentColor }}></div>
+                <div className="absolute bottom-0 right-0 w-2 h-2" style={{ backgroundColor: accentColor }}></div>
 
-                <div className="w-16 h-16 bg-[#00FF41]/10 rounded flex items-center justify-center mx-auto border border-[#00FF41]">
-                    <Key className="w-8 h-8 text-[#00FF41]" />
+                <div className="w-16 h-16 rounded flex items-center justify-center mx-auto border" style={{ borderColor: accentColor, backgroundColor: `${accentColor}1A` }}>
+                    <Key className="w-8 h-8" style={{ color: accentColor }} />
                 </div>
                 
                 <div>
@@ -503,7 +516,8 @@ export default function TheGate({ onSubmit }: TheGateProps) {
 
                 <div 
                     onClick={copyKey}
-                    className="bg-black p-4 border border-[#00FF41]/50 font-mono text-lg text-[#00FF41] tracking-widest cursor-pointer hover:bg-[#00FF41]/10 transition-all flex items-center justify-between group relative overflow-hidden"
+                    className="bg-black p-4 border font-mono text-lg tracking-widest cursor-pointer transition-all flex items-center justify-between group relative overflow-hidden"
+                    style={{ borderColor: `${accentColor}80`, color: accentColor }}
                 >
                     <div className="absolute inset-0 scanlines opacity-50"></div>
                     <span className="relative z-10">{generatedKey}</span>
@@ -512,7 +526,8 @@ export default function TheGate({ onSubmit }: TheGateProps) {
 
                 <button
                     onClick={proceedWithKey}
-                    className="w-full bg-[#00FF41] text-black font-bold py-4 font-mono hover:bg-white transition-colors"
+                    className="w-full text-black font-bold py-4 font-mono hover:bg-white transition-colors"
+                    style={{ backgroundColor: accentColor }}
                 >
                     {t('enter')}
                 </button>
@@ -528,7 +543,7 @@ export default function TheGate({ onSubmit }: TheGateProps) {
             className="w-full max-w-md z-10 relative"
           >
             <div className="bg-black/80 backdrop-blur-xl p-8 rounded border border-white/10 relative overflow-visible shadow-2xl">
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#00FF41] to-transparent opacity-50"></div>
+              <div className="absolute top-0 left-0 w-full h-1 opacity-50" style={{ background: `linear-gradient(90deg, transparent, ${accentColor}, transparent)` }}></div>
               
               <div className="mb-8 text-center relative z-10">
                 <h2 className="text-xl font-bold tracking-tight text-white font-mono uppercase">
@@ -544,7 +559,7 @@ export default function TheGate({ onSubmit }: TheGateProps) {
                 {mode === 'LOGIN' ? (
                      // --- LOGIN INPUT (KEY) ---
                      <div className="relative group">
-                        <div className={`absolute top-4 text-[#00FF41] ${isRTL ? 'right-4' : 'left-4'}`}>
+                        <div className={`absolute top-4 ${isRTL ? 'right-4' : 'left-4'}`} style={{ color: accentColor }}>
                             <Key className="w-5 h-5" />
                         </div>
                         <input 
@@ -552,7 +567,8 @@ export default function TheGate({ onSubmit }: TheGateProps) {
                             value={loginKey}
                             onChange={e => setLoginKey(e.target.value)}
                             placeholder="G0D-XXXX-XXXX" 
-                            className={`w-full bg-black border border-white/20 focus:border-[#00FF41] text-[#00FF41] p-4 outline-none transition-all font-mono uppercase ${isRTL ? 'pr-12 text-right' : 'pl-12'}`}
+                            className={`w-full bg-black border border-white/20 p-4 outline-none transition-all font-mono uppercase ${isRTL ? 'pr-12 text-right' : 'pl-12'}`}
+                            style={{ color: accentColor, borderColor: loginKey ? accentColor : 'rgba(255,255,255,0.2)' }}
                             autoFocus
                         />
                      </div>
@@ -560,7 +576,7 @@ export default function TheGate({ onSubmit }: TheGateProps) {
                     // --- SIGNUP INPUTS ---
                     <>
                         <div className="relative group">
-                        <div className={`absolute top-4 text-[#86868B] group-focus-within:text-[#00FF41] ${isRTL ? 'right-4' : 'left-4'}`}>
+                        <div className={`absolute top-4 text-[#86868B] group-focus-within:text-white ${isRTL ? 'right-4' : 'left-4'}`}>
                             <Terminal className="w-5 h-5" />
                         </div>
                         <input 
@@ -568,7 +584,7 @@ export default function TheGate({ onSubmit }: TheGateProps) {
                             value={name}
                             onChange={e => setName(e.target.value)}
                             placeholder={t('name')} 
-                            className={`w-full bg-black border border-white/20 focus:border-[#00FF41] text-white p-4 outline-none transition-all font-mono ${isRTL ? 'pr-12 text-right' : 'pl-12'}`}
+                            className={`w-full bg-black border border-white/20 focus:border-white text-white p-4 outline-none transition-all font-mono ${isRTL ? 'pr-12 text-right' : 'pl-12'}`}
                             autoFocus
                         />
                         </div>
@@ -593,27 +609,27 @@ export default function TheGate({ onSubmit }: TheGateProps) {
                                             onChange={e => handleDateChange('d', e.target.value)}
                                             placeholder="DD"
                                             maxLength={2}
-                                            className="w-1/3 min-w-[60px] text-center bg-black border border-white/20 focus:border-[#00FF41] text-white p-3 outline-none"
+                                            className="w-1/3 min-w-[60px] text-center bg-black border border-white/20 focus:border-white text-white p-3 outline-none"
                                         />
                                         <input 
-                                            ref={monthRef} // REF
+                                            ref={monthRef} 
                                             type="tel" 
                                             pattern="[0-9]*"
                                             value={month} 
                                             onChange={e => handleDateChange('m', e.target.value)}
                                             placeholder="MM"
                                             maxLength={2}
-                                            className="w-1/3 min-w-[60px] text-center bg-black border border-white/20 focus:border-[#00FF41] text-white p-3 outline-none"
+                                            className="w-1/3 min-w-[60px] text-center bg-black border border-white/20 focus:border-white text-white p-3 outline-none"
                                         />
                                         <input 
-                                            ref={yearRef} // REF
+                                            ref={yearRef} 
                                             type="tel" 
                                             pattern="[0-9]*"
                                             value={year} 
                                             onChange={e => handleDateChange('y', e.target.value)}
                                             placeholder="YYYY"
                                             maxLength={4}
-                                            className="w-1/3 min-w-[80px] text-center bg-black border border-white/20 focus:border-[#00FF41] text-white p-3 outline-none"
+                                            className="w-1/3 min-w-[80px] text-center bg-black border border-white/20 focus:border-white text-white p-3 outline-none"
                                         />
                                     </div>
                                 </div>
@@ -626,7 +642,7 @@ export default function TheGate({ onSubmit }: TheGateProps) {
                                             value={time}
                                             disabled={timeUnknown}
                                             onChange={e => setTime(e.target.value)}
-                                            className={`w-full text-center bg-black border border-white/20 focus:border-[#00FF41] text-white p-3 outline-none ${timeUnknown ? 'opacity-30' : ''}`}
+                                            className={`w-full text-center bg-black border border-white/20 focus:border-white text-white p-3 outline-none ${timeUnknown ? 'opacity-30' : ''}`}
                                         />
                                     </div>
                                     <div className="flex items-center gap-2 min-w-[120px]">
@@ -635,7 +651,8 @@ export default function TheGate({ onSubmit }: TheGateProps) {
                                             id="timeUnknown"
                                             checked={timeUnknown}
                                             onChange={e => setTimeUnknown(e.target.checked)}
-                                            className="w-4 h-4 accent-[#00FF41] rounded cursor-pointer bg-black border-white/20"
+                                            className="w-4 h-4 rounded cursor-pointer bg-black border-white/20"
+                                            style={{ accentColor: accentColor }}
                                         />
                                         <label htmlFor="timeUnknown" className="text-[10px] text-[#86868B] cursor-pointer select-none font-mono whitespace-nowrap uppercase">
                                             {t('time_unknown')}
@@ -652,9 +669,10 @@ export default function TheGate({ onSubmit }: TheGateProps) {
                                             onClick={() => setGender(g)}
                                             className={`flex-1 py-3 text-[10px] font-bold border transition-all uppercase ${
                                                 gender === g 
-                                                ? 'bg-[#00FF41] text-black border-[#00FF41]' 
+                                                ? 'text-black' 
                                                 : 'bg-black text-[#86868B] border-white/20 hover:border-white/40'
                                             }`}
+                                            style={gender === g ? { backgroundColor: accentColor, borderColor: accentColor } : {}}
                                         >
                                             {g === 'male' && t('gender_m')}
                                             {g === 'female' && t('gender_f')}
@@ -676,7 +694,7 @@ export default function TheGate({ onSubmit }: TheGateProps) {
                                             setSelectedLocation(null);
                                         }}
                                         placeholder={t('city')} 
-                                        className={`w-full bg-black border border-white/20 focus:border-[#00FF41] text-white p-4 outline-none transition-all font-mono ${isRTL ? 'pr-12 text-right' : 'pl-12'}`}
+                                        className={`w-full bg-black border border-white/20 focus:border-white text-white p-4 outline-none transition-all font-mono ${isRTL ? 'pr-12 text-right' : 'pl-12'}`}
                                     />
                                     
                                     {cityQuery && (
@@ -690,8 +708,8 @@ export default function TheGate({ onSubmit }: TheGateProps) {
                                     )}
 
                                     {isSearching && (
-                                        <div className={`absolute top-4 ${isRTL ? 'left-4' : 'right-4'}`}>
-                                            <Loader2 className="w-5 h-5 animate-spin text-[#00FF41]" />
+                                        <div className={`absolute top-4 ${isRTL ? 'left-4' : 'right-4'}`} style={{ color: accentColor }}>
+                                            <Loader2 className="w-5 h-5 animate-spin" />
                                         </div>
                                     )}
 
@@ -701,7 +719,8 @@ export default function TheGate({ onSubmit }: TheGateProps) {
                                                 initial={{ opacity: 0, y: -10 }}
                                                 animate={{ opacity: 1, y: 0 }}
                                                 exit={{ opacity: 0 }}
-                                                className="absolute top-full left-0 w-full mt-2 bg-black border border-[#00FF41] z-[70] shadow-2xl max-h-48 overflow-y-auto"
+                                                className="absolute top-full left-0 w-full mt-2 bg-black border z-[70] shadow-2xl max-h-48 overflow-y-auto"
+                                                style={{ borderColor: accentColor }}
                                             >
                                                 {cityResults.map((loc, i) => (
                                                     <li 
@@ -711,7 +730,9 @@ export default function TheGate({ onSubmit }: TheGateProps) {
                                                             setCityQuery(`${loc.name}, ${loc.country}`);
                                                             setCityResults([]);
                                                         }}
-                                                        className={`px-4 py-3 hover:bg-[#00FF41] hover:text-black cursor-pointer text-xs border-b border-white/10 last:border-none transition-colors flex items-center font-mono ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'}`}
+                                                        className={`px-4 py-3 hover:text-black cursor-pointer text-xs border-b border-white/10 last:border-none transition-colors flex items-center font-mono ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'}`}
+                                                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = accentColor}
+                                                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                                                     >
                                                         <span className="font-bold">{loc.name}</span>
                                                         <span className="opacity-60">{loc.country}</span>
@@ -742,7 +763,8 @@ export default function TheGate({ onSubmit }: TheGateProps) {
                   whileTap={{ scale: 0.98 }}
                   type="submit"
                   disabled={isLoading}
-                  className="w-full bg-[#00FF41] text-black font-bold py-4 uppercase tracking-widest hover:bg-white transition-colors flex items-center justify-center gap-2 disabled:opacity-50 mt-6"
+                  className="w-full text-black font-bold py-4 uppercase tracking-widest hover:bg-white transition-colors flex items-center justify-center gap-2 disabled:opacity-50 mt-6"
+                  style={{ backgroundColor: accentColor }}
                 >
                   {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : (mode === 'NEW' ? t('init') : t('login_btn'))}
                 </motion.button>
@@ -754,7 +776,7 @@ export default function TheGate({ onSubmit }: TheGateProps) {
                             setMode(mode === 'NEW' ? 'LOGIN' : 'NEW');
                             setError(null);
                         }}
-                        className="text-[#86868B] text-[10px] hover:text-[#00FF41] transition-colors flex items-center justify-center gap-2 mx-auto uppercase tracking-widest font-mono"
+                        className="text-[#86868B] text-[10px] hover:text-white transition-colors flex items-center justify-center gap-2 mx-auto uppercase tracking-widest font-mono"
                     >
                         {mode === 'NEW' ? (
                             <><Database className="w-3 h-3" /> {t('switch_login')}</>

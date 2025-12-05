@@ -11,7 +11,9 @@ import { createClient } from '@/lib/supabase';
 import { cryptoService } from '@/lib/crypto'; 
 import { audioService } from '@/services/audioService';
 import { locationService } from '@/services/locationService';
-import { getTranslation } from '@/lib/translations'; // Import
+import { getTranslation } from '@/lib/translations'; 
+import { getCulturalConfig } from '@/lib/culturalConfig'; // IMPORT
+import { useRouter } from 'next/navigation'; // ROUTER FOR ADMIN
 
 interface GodDashboardProps { userData: any; }
 
@@ -61,12 +63,18 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
   const inputRef = useRef<HTMLInputElement>(null); 
   const [isTyping, setIsTyping] = useState(false);
   const [isPremiumMode, setIsPremiumMode] = useState(false); 
+  const [adminClicks, setAdminClicks] = useState(0); // ADMIN TRIGGER
+  const router = useRouter();
   
   // Language State
   const [userLang, setUserLang] = useState('en');
 
   // Use Helper
   const t = (key: string) => getTranslation(userLang, key);
+  
+  // Cultural Config
+  const config = getCulturalConfig(userLang);
+  const accentColor = config.accentColor;
 
   useEffect(() => {
       const lang = userData.language || locationService.detectUserLanguage();
@@ -298,6 +306,20 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
       setMessages(prev => [...prev, { id: generateId(), text: "TRIBUTE ACCEPTED. PROTOCOLS UNLOCKED.", sender: 'god' }]);
   };
 
+  // ADMIN TRIGGER LOGIC
+  const handleAdminTrigger = () => {
+      setAdminClicks(c => c + 1);
+      if (adminClicks + 1 >= 3) {
+          const key = prompt("ENTER SYSTEM KEY:");
+          if (key === "GOD_MODE_ACTIVATE_999") {
+              router.push('/admin');
+          } else {
+              alert("ACCESS DENIED");
+              setAdminClicks(0);
+          }
+      }
+  };
+
   return (
     <div className="flex flex-col h-[100dvh] bg-black text-[#F5F5F7] font-mono overflow-hidden" style={{ height: '100dvh' }}>
       
@@ -307,13 +329,13 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
       {/* --- HEADER --- */}
       <div className="pt-4 pb-2 px-6 flex justify-between items-center bg-black/80 backdrop-blur-xl z-50 border-b border-white/5 sticky top-0 flex-shrink-0">
         <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded bg-[#00FF41]/10 flex items-center justify-center border border-[#00FF41]/20">
-                <Terminal className="w-4 h-4 text-[#00FF41]" />
+            <div className="w-8 h-8 rounded bg-white/5 flex items-center justify-center border border-white/10" style={{ borderColor: `${accentColor}33` }}>
+                <Terminal className="w-4 h-4" style={{ color: accentColor }} />
             </div>
             <div>
                 <h1 className="text-xs font-bold tracking-widest uppercase text-white glitch-text" data-text="THEG0D">THEG0D</h1>
                 <div className="flex items-center gap-1 text-[9px] text-[#86868B] font-mono">
-                    <span className="w-1.5 h-1.5 bg-[#00FF41] animate-pulse"></span>
+                    <span className="w-1.5 h-1.5 animate-pulse" style={{ backgroundColor: accentColor }}></span>
                     CONNECTED: 127.0.0.1
                 </div>
             </div>
@@ -321,7 +343,7 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
 
             <div className="flex items-center gap-4 bg-[#1C1C1E] px-4 py-2 rounded border border-white/5 font-mono">
             <div className="flex items-center gap-2">
-                 <Battery className={`w-3 h-3 ${energy < 2 ? 'text-red-500 animate-pulse' : 'text-[#00FF41]'}`} />
+                 <Battery className={`w-3 h-3 ${energy < 2 ? 'text-red-500 animate-pulse' : ''}`} style={{ color: energy >= 2 ? accentColor : undefined }} />
                  <span className="text-[10px] text-[#86868B]">
                     {energy > 9000 ? "INF" : `${energy}/5`}
                  </span>
@@ -330,7 +352,7 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
             <div className="flex items-center gap-2">
                 <span className="text-[10px] text-[#86868B]">CPU</span>
                 <div className="w-12 h-1 bg-[#333] overflow-hidden">
-                    <div className="h-full bg-[#00FF41] animate-pulse" style={{ width: `${sanity}%` }}></div>
+                    <div className="h-full animate-pulse" style={{ width: `${sanity}%`, backgroundColor: accentColor }}></div>
                 </div>
             </div>
             <div className="w-[1px] h-3 bg-white/10"></div>
@@ -338,7 +360,7 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
                 <Coins className="w-4 h-4" />
             </button>
             <div className="w-[1px] h-3 bg-white/10"></div>
-            <button onClick={() => setShowProfileModal(true)} className="text-[#00FF41] hover:text-white transition-colors">
+            <button onClick={() => setShowProfileModal(true)} className="hover:text-white transition-colors" style={{ color: accentColor }}>
                 <User className="w-4 h-4" />
             </button>
         </div>
@@ -361,9 +383,9 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
           >
             <div className={`max-w-[85%] md:max-w-[65%] px-5 py-4 text-[14px] leading-relaxed relative group font-mono border ${
               msg.sender === 'god' 
-                ? 'bg-black/40 text-[#00FF41] border-[#00FF41]/20 shadow-[0_0_15px_rgba(0,255,65,0.05)] rounded-tr-xl rounded-br-xl rounded-bl-xl' 
+                ? 'bg-black/40 shadow-[0_0_15px_rgba(0,255,65,0.05)] rounded-tr-xl rounded-br-xl rounded-bl-xl' 
                 : 'bg-white text-black border-transparent rounded-tl-xl rounded-bl-xl rounded-br-xl'
-            }`}>
+            }`} style={msg.sender === 'god' ? { borderColor: `${accentColor}33`, color: accentColor } : {}}>
               <div className="absolute -top-3 left-0 text-[9px] text-[#86868B] bg-black px-1 font-mono uppercase tracking-widest">
                 {msg.sender === 'god' ? 'SYSTEM' : 'SUBJECT'}
               </div>
@@ -385,7 +407,7 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
                             alert("LOG COPIED.");
                         }
                     }}
-                    className="absolute -right-8 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-[#86868B] hover:text-[#00FF41]"
+                    className="absolute -right-8 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-[#86868B] hover:text-white"
                   >
                     <Share2 className="w-4 h-4" />
                   </button>
@@ -396,7 +418,7 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
         
         {isTyping && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-start">
-                <div className="text-[#00FF41] font-mono text-xs animate-pulse">
+                <div className="font-mono text-xs animate-pulse" style={{ color: accentColor }}>
                     [COMPILING FATE DATA...]
                 </div>
             </motion.div>
@@ -411,25 +433,25 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
                 <Lock className="w-3 h-3" /> {t('deep_scan')}
              </button>
             {SUGGESTED_QUESTIONS.map((q, i) => (
-                <button key={i} onClick={() => handleSend(null, q)} disabled={isTyping} className="whitespace-nowrap px-4 py-2 bg-[#1C1C1E] border border-white/10 text-[10px] font-mono text-[#86868B] hover:text-[#00FF41] hover:border-[#00FF41]/30 transition-all flex-shrink-0 disabled:opacity-50 uppercase tracking-widest">
+                <button key={i} onClick={() => handleSend(null, q)} disabled={isTyping} className="whitespace-nowrap px-4 py-2 bg-[#1C1C1E] border border-white/10 text-[10px] font-mono text-[#86868B] hover:text-white transition-all flex-shrink-0 disabled:opacity-50 uppercase tracking-widest" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
                     {q}
                 </button>
             ))}
         </div>
 
-        <form onSubmit={handleSend} className={`relative w-full flex items-center gap-4 ${isPremiumMode ? 'border-b border-[#FFD700]' : 'border-b border-white/20'}`}>
-            <span className="text-[#00FF41] font-mono text-lg animate-pulse">{'>'}</span>
+        <form onSubmit={handleSend} className={`relative w-full flex items-center gap-4 border-b border-white/20`} style={{ borderColor: isPremiumMode ? '#FFD700' : 'rgba(255,255,255,0.2)' }}>
+            <span className="font-mono text-lg animate-pulse" style={{ color: accentColor }}>{'>'}</span>
             <input 
                 ref={inputRef}
                 type="text" 
                 value={input}
                 onChange={e => setInput(e.target.value)}
-                placeholder={isPremiumMode ? t('placeholder_premium') : (energy > 0 ? t('placeholder') : t('recharge'))}
+                placeholder={isPremiumMode ? t('placeholder_premium') : (energy > 0 ? config.placeholder : t('recharge'))}
                 disabled={energy <= 0}
                 className="w-full bg-transparent text-white py-4 font-mono text-base outline-none placeholder-[#333]"
                 autoComplete="off"
             />
-            <button type="submit" disabled={!input.trim() || isTyping || energy <= 0} className={`p-2 hover:text-[#00FF41] transition-colors disabled:opacity-30 ${isPremiumMode ? 'text-[#FFD700]' : 'text-white'}`}>
+            <button type="submit" disabled={!input.trim() || isTyping || energy <= 0} className={`p-2 transition-colors disabled:opacity-30 ${isPremiumMode ? 'text-[#FFD700]' : 'text-white'}`} style={{ color: !isPremiumMode ? accentColor : undefined }}>
                 <Send className="w-5 h-5" />
             </button>
         </form>
@@ -439,13 +461,13 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
       <AnimatePresence>
         {showPaymentModal.show && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-end md:items-center justify-center p-0 md:p-4">
-            <motion.div initial={{ y: 50 }} animate={{ y: 0 }} exit={{ y: 50 }} className="bg-black w-full max-w-md border border-[#00FF41]/30 p-8 relative shadow-[0_0_50px_rgba(0,255,65,0.1)]">
+            <motion.div initial={{ y: 50 }} animate={{ y: 0 }} exit={{ y: 50 }} className="bg-black w-full max-w-md border p-8 relative shadow-[0_0_50px_rgba(0,255,65,0.1)]" style={{ borderColor: `${accentColor}4D` }}>
               <button onClick={() => setShowPaymentModal({ show: false, type: null })} className="absolute top-4 right-4 text-[#86868B] hover:text-white"><X className="w-4 h-4" /></button>
               
               <div className="text-center space-y-6 font-mono">
-                <div className="w-16 h-16 border border-[#00FF41] flex items-center justify-center mx-auto relative">
-                    <div className="absolute inset-0 bg-[#00FF41] opacity-10 animate-pulse"></div>
-                    <Coins className="w-8 h-8 text-[#00FF41]" />
+                <div className="w-16 h-16 border flex items-center justify-center mx-auto relative" style={{ borderColor: accentColor }}>
+                    <div className="absolute inset-0 opacity-10 animate-pulse" style={{ backgroundColor: accentColor }}></div>
+                    <Coins className="w-8 h-8" style={{ color: accentColor }} />
                 </div>
                 
                 <div>
@@ -455,8 +477,8 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
 
                 {paymentLoading ? (
                   <div className="py-8 flex flex-col items-center gap-4">
-                      <div className="w-12 h-12 border-4 border-t-[#00FF41] border-white/10 rounded-full animate-spin"></div>
-                      <div className="text-[#00FF41] text-xs blink">{t('generating_address')}</div>
+                      <div className="w-12 h-12 border-4 border-white/10 rounded-full animate-spin" style={{ borderTopColor: accentColor }}></div>
+                      <div className="text-xs blink" style={{ color: accentColor }}>{t('generating_address')}</div>
                   </div>
                 ) : paymentResult ? (
                     <div className="space-y-6">
@@ -467,7 +489,8 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
                               <p className="text-[10px] text-[#86868B] uppercase tracking-widest">{t('send_amount')} {paymentResult.amount} {paymentResult.pay_currency.toUpperCase()}</p>
                               <div 
                                  onClick={() => navigator.clipboard.writeText(paymentResult.pay_address)}
-                                 className="bg-[#111] p-3 border border-dashed border-[#333] text-[10px] text-[#00FF41] break-all cursor-pointer hover:border-[#00FF41] transition-all text-center"
+                                 className="bg-[#111] p-3 border border-dashed border-[#333] text-[10px] break-all cursor-pointer hover:border-white transition-all text-center"
+                                 style={{ color: accentColor }}
                               >
                                  {paymentResult.pay_address}
                               </div>
@@ -475,13 +498,14 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
                          <button 
                              onClick={confirmPayment}
                              disabled={isVerifying}
-                             className="w-full bg-[#00FF41] text-black font-bold py-4 uppercase tracking-widest hover:bg-white transition-colors disabled:opacity-50"
+                             className="w-full text-black font-bold py-4 uppercase tracking-widest hover:bg-white transition-colors disabled:opacity-50"
+                             style={{ backgroundColor: accentColor }}
                          >
                              {isVerifying ? t('verifying') : t('confirm_tx')}
                          </button>
                     </div>
                 ) : (
-                    <button onClick={handlePayment} className="w-full bg-[#00FF41] text-black font-bold py-4 uppercase tracking-widest hover:bg-white transition-colors flex items-center justify-center gap-2">
+                    <button onClick={handlePayment} className="w-full text-black font-bold py-4 uppercase tracking-widest hover:bg-white transition-colors flex items-center justify-center gap-2" style={{ backgroundColor: accentColor }}>
                         <Zap className="w-4 h-4" /> {t('initiate_transfer')}
                     </button>
                 )}
@@ -501,11 +525,11 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
               <div className="space-y-6 font-mono">
                 <div className="text-center border-b border-white/10 pb-6">
                     <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4 border border-white/10">
-                        <User className="w-8 h-8 text-[#00FF41]" />
+                        <User className="w-8 h-8" style={{ color: accentColor }} />
                     </div>
                     <h3 className="text-lg font-bold text-white">{finalUserData.name}</h3>
                     <p className="text-[#86868B] text-xs mt-1">{finalUserData.locationName}</p>
-                    <p className="text-[#00FF41] text-[10px] mt-2 break-all">{finalUserData.identity_key}</p>
+                    <p className="text-[10px] mt-2 break-all" style={{ color: accentColor }}>{finalUserData.identity_key}</p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -540,7 +564,10 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
       </AnimatePresence>
       
       {/* --- FOOTER STATUS --- */}
-      <div className={`bg-black border-t border-white/5 text-[#333] text-[9px] font-mono text-center py-1 uppercase tracking-widest select-none ${horoscope?.moon_phase === 'Full Moon' ? 'text-[#FFD700] animate-pulse' : ''}`}>
+      <div 
+        className={`bg-black border-t border-white/5 text-[#333] text-[9px] font-mono text-center py-1 uppercase tracking-widest select-none cursor-pointer ${horoscope?.moon_phase === 'Full Moon' ? 'text-[#FFD700] animate-pulse' : ''}`}
+        onClick={handleAdminTrigger}
+      >
         {t('server_online')} | {t('encryption_active')} | NODE: {Math.floor(Math.random() * 9999)} | {t('moon')}: {horoscope?.moon_phase || "CALCULATING"}
       </div>
     </div>
