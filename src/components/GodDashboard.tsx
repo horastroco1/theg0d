@@ -86,6 +86,8 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
   const [xp, setXp] = useState(userData.xp || 0);
   const [level, setLevel] = useState(userData.level || 0);
   const [showPaymentModal, setShowPaymentModal] = useState<{show: boolean, type: PaymentType | null}>({ show: false, type: null });
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  
   // NEW STATE FOR OFFERINGS
   const [activeSkin, setActiveSkin] = useState(userData.active_skin || 'default');
 
