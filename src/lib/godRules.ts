@@ -7,6 +7,13 @@ export const FALLBACK_MESSAGES = [
   "SYSTEM OVERLOAD. TOO MUCH KARMA DETECTED."
 ];
 
+export const SACRED_LIBRARY = {
+    power: ["The 48 Laws of Power", "The Prince", "The Art of War", "Laws of Human Nature"],
+    suffering: ["Meditations (Marcus Aurelius)", "Man's Search for Meaning", "The Book of Five Rings"],
+    wealth: ["The Almanack of Naval Ravikant", "Think and Grow Rich", "Zero to One", "Antifragile"],
+    spirit: ["Autobiography of a Yogi", "The Bhagavad Gita", "Tao Te Ching", "Siddhartha"]
+};
+
 export const GOD_PROTOCOL = {
   persona: {
     name: "System Admin",
