@@ -19,6 +19,7 @@ export interface HoroscopeData {
   all_planets?: any; 
   houses?: any; 
   planet_houses?: any; // New: Calculated houses for each planet
+  computed_hits?: string[]; // New: Calculated "Vedic Hits"
   isMoonChart: boolean;
   raw_response?: any;
   nakshatras?: any;
@@ -139,6 +140,42 @@ export const astrologyService = {
           console.error("❌ DASHA ENGINE ERROR:", e);
       }
 
+      // 5. COMPUTED "VEDIC HITS" LOGIC
+      const computedHits: string[] = [];
+
+      // A. Transit-to-House Mapping
+      if (transitData && typeof ascendantNum === 'number') {
+          Object.entries(transitData).forEach(([key, val]: [string, any]) => {
+             // For transits, we want to know which house of the USER they are in.
+             const transitSign = val.rashi; // 1=Aries, etc.
+             let transitHouse = (transitSign - ascendantNum + 1);
+             if (transitHouse <= 0) transitHouse += 12;
+             
+             // Significant Transits Only
+             if (['Sa', 'Ju', 'Ra', 'Ke', 'Ma'].includes(key)) {
+                 const houseMeaning: any = {
+                     1: "Self/Health", 2: "Wealth/Family", 3: "Courage/Siblings", 4: "Home/Mother",
+                     5: "Romance/Creativity", 6: "Enemies/Debt", 7: "Marriage/Partnership", 8: "Transformation/Sudden Events",
+                     9: "Luck/Dharma", 10: "Career/Status", 11: "Gains/Network", 12: "Loss/Isolation"
+                 };
+                 computedHits.push(`Transit ${key} is currently in your House ${transitHouse} (${houseMeaning[transitHouse]}).`);
+             }
+          });
+      }
+
+      // B. Dasha Lord Status
+      if (currentDasha !== 'Unsynchronized') {
+          const [md, ad] = currentDasha.split('/');
+          if (md && planetHouses[md]) {
+             const house = planetHouses[md];
+             computedHits.push(`Major Period Lord (${md}) is activating your House ${house} in the birth chart.`);
+          }
+          if (ad && planetHouses[ad]) {
+             const house = planetHouses[ad];
+             computedHits.push(`Sub-Period Lord (${ad}) is activating your House ${house}.`);
+          }
+      }
+
       return {
           ascendant: ascendantName,
           moon_sign: moonName,
@@ -146,6 +183,7 @@ export const astrologyService = {
           all_planets: planets,
           houses: houses,
           planet_houses: planetHouses, // Pass Calculated Houses
+          computed_hits: computedHits, // Pass Calculated Hits
           nakshatras: nakshatras,
           isMoonChart: !!params.timeUnknown,
           raw_response: data,

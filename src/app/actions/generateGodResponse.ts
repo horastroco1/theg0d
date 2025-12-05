@@ -51,8 +51,8 @@ export async function generateGodResponse(
 
   // DYNAMIC MODEL SWITCHING - Using OpenRouter Model IDs
   // Standard: Gemini 2.0 Flash Lite (Fast/Cheap)
-  // Premium: Gemini 2.0 Flash (Smart/Powerful)
-  const initialModel = context.tier === 'premium' ? 'google/gemini-2.0-flash-001' : 'google/gemini-2.0-flash-lite-001';
+  // Premium: Claude 3.5 Sonnet (The "All-Seeing" Poet)
+  const initialModel = context.tier === 'premium' ? 'anthropic/claude-3.5-sonnet' : 'google/gemini-2.0-flash-lite-001';
   console.log(`🔮 AI ENGINE: Using Model: ${initialModel}`);
   
   const generate = async (modelName: string) => {
@@ -63,7 +63,8 @@ export async function generateGodResponse(
       const planets = horoscopeData?.all_planets || {};
       const transits = horoscopeData?.transits || {};
       const nakshatras = horoscopeData?.nakshatras || {};
-  
+      const computedHits = horoscopeData?.computed_hits || []; // New: Hits from Code
+
       const planetSummary = Object.entries(planets).map(([key, val]: [string, any]) => {
         const nakshatraInfo = nakshatras[key] ? `(Nakshatra: ${nakshatras[key].name}, Pada: ${nakshatras[key].pada})` : '';
         return `${key}: Rashi ${val.rashi}, Degree ${val.degree.toFixed(2)} ${nakshatraInfo}`;
@@ -76,6 +77,10 @@ export async function generateGodResponse(
       const houseSummary = Object.entries(horoscopeData?.planet_houses || {}).map(([key, val]: [string, any]) => {
         return `${key} is in House ${val}`;
       }).join('. ');
+
+      const hitsSummary = computedHits.length > 0 
+        ? "--- ABSOLUTE COSMIC FACTS (DO NOT IGNORE) ---\n" + computedHits.map((hit: string) => `• ${hit}`).join('\n')
+        : "";
 
       // Construct System Context with Dynamic Protocol
       const systemContext = `
@@ -105,6 +110,8 @@ export async function generateGodResponse(
   
         HOUSE ALIGNMENT:
         ${houseSummary}
+
+        ${hitsSummary}
   
         --- GOLDEN ALGORITHMS (ASTROLOGY LOGIC) ---
         Apply these rules strictly as System Status updates:
