@@ -72,13 +72,20 @@ export default function TheGate({ onSubmit }: TheGateProps) {
   const accentColor = config.accentColor; 
 
   useEffect(() => {
+    const hasBooted = sessionStorage.getItem('god_boot_complete');
+    if (hasBooted) {
+        setBootComplete(true);
+    }
+    
     const detectUserContext = async () => {
         try {
             const savedKey = localStorage.getItem('god_identity_key');
             if (savedKey) {
                 setLoginKey(savedKey);
                 setMode('LOGIN');
-                setTimeout(() => autoLogin(savedKey), 500);
+                // Removed autoLogin timeout here to prevent double triggers
+                // Instead, we can rely on the user clicking 'Enter' or just pre-filling
+                // If you WANT auto-login, we should use a more stable hook
             }
 
             const lang = await locationService.detectUserLanguageByIP();
@@ -261,9 +268,9 @@ export default function TheGate({ onSubmit }: TheGateProps) {
 
     setIsLoading(true);
     
-    const dNum = parseInt(day);
-    const mNum = parseInt(month);
-    const yNum = parseInt(year);
+    const dNum = parseInt(day.trim(), 10);
+    const mNum = parseInt(month.trim(), 10);
+    const yNum = parseInt(year.trim(), 10);
 
     if (!day || !month || !year || isNaN(dNum) || isNaN(mNum) || isNaN(yNum)) {
         setError(t('err_fields'));
@@ -401,7 +408,10 @@ export default function TheGate({ onSubmit }: TheGateProps) {
         )}
     </AnimatePresence>
 
-    {!bootComplete && <BootSequence onComplete={() => setBootComplete(true)} />}
+    {!bootComplete && <BootSequence onComplete={() => {
+        setBootComplete(true);
+        sessionStorage.setItem('god_boot_complete', 'true');
+    }} />}
     
     <div className={`min-h-screen flex flex-col items-center justify-center relative p-6 bg-black text-[#F5F5F7] overflow-hidden font-mono ${isRTL ? 'rtl' : 'ltr'}`} dir={isRTL ? 'rtl' : 'ltr'}>
       
