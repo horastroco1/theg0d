@@ -57,9 +57,9 @@ export async function generateGodResponse(
   }
 
   // DYNAMIC MODEL SWITCHING - Using OpenRouter Model IDs
-  // Standard: Gemini 2.0 Flash Lite (Fast/Cheap)
-  // Premium: Claude 3.5 Sonnet (The "All-Seeing" Poet)
-  const initialModel = context.tier === 'premium' ? 'anthropic/claude-3.5-sonnet' : 'google/gemini-2.0-flash-lite-001';
+  // Standard: Gemini 2.0 Flash (Fast & Intelligent)
+  // Premium: Gemini 3.0 Pro Preview (The God Mind)
+  const initialModel = context.tier === 'premium' ? 'google/gemini-3.0-pro-preview' : 'google/gemini-2.0-flash-001';
   console.log(`🔮 AI ENGINE: Using Model: ${initialModel}`);
   
   const generate = async (modelName: string) => {
@@ -224,10 +224,10 @@ export async function generateGodResponse(
     handleApiError(error);
     
     // Fallback Strategy: If Pro fails, try Flash
-    if (initialModel !== 'google/gemini-2.0-flash-lite-001') {
-        console.log("🔄 FALLBACK: Switching to Gemini 2.0 Flash Lite (OpenRouter)...");
+    if (initialModel !== 'google/gemini-2.0-flash-001') {
+        console.log("🔄 FALLBACK: Switching to Gemini 2.0 Flash (OpenRouter)...");
         try {
-            const fallbackResponse = await generate('google/gemini-2.0-flash-lite-001');
+            const fallbackResponse = await generate('google/gemini-2.0-flash-001');
             if (fallbackResponse.data?.choices?.[0]?.message?.content) {
                 return fallbackResponse.data.choices[0].message.content;
             }
