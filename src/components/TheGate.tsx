@@ -25,6 +25,10 @@ export interface FormData {
   gender?: string;
   chart_data?: any;
   identity_key?: string;
+  energy?: number;
+  max_energy?: number;
+  xp?: number;
+  level?: number;
 }
 
 interface TheGateProps {
@@ -131,23 +135,27 @@ export default function TheGate({ onSubmit }: TheGateProps) {
               throw new Error("Session Expired.");
           }
 
-          const user = users[0];
-          await triggerWarp(async () => {
-              await onSubmit({
-                  name: user.name,
-                  date: user.birth_date,
-                  time: user.birth_time,
-                  timeUnknown: user.birth_time === '12:00',
-                  latitude: user.latitude,
-                  longitude: user.longitude,
-                  timezone: user.timezone,
-                  locationName: user.birth_place,
-                  language: detectedLang,
-                  gender: user.gender || 'unknown',
-                  chart_data: user.chart_data,
-                  identity_key: user.identity_key
-              });
-          });
+            const user = users[0];
+            await triggerWarp(async () => {
+                await onSubmit({
+                    name: user.name,
+                    date: user.birth_date,
+                    time: user.birth_time,
+                    timeUnknown: user.birth_time === '12:00',
+                    latitude: user.latitude,
+                    longitude: user.longitude,
+                    timezone: user.timezone,
+                    locationName: user.birth_place,
+                    language: detectedLang,
+                    gender: user.gender || 'unknown',
+                    chart_data: user.chart_data,
+                    identity_key: user.identity_key,
+                    energy: user.energy,
+                    max_energy: user.max_energy,
+                    xp: user.xp,
+                    level: user.level
+                });
+            });
       } catch (err: any) {
           setIsLoading(false);
           console.log("Auto-login failed:", err.message);
@@ -256,7 +264,11 @@ export default function TheGate({ onSubmit }: TheGateProps) {
                     language: detectedLang,
                     gender: user.gender || 'unknown',
                     chart_data: user.chart_data,
-                    identity_key: user.identity_key
+                    identity_key: user.identity_key,
+                    energy: user.energy,
+                    max_energy: user.max_energy,
+                    xp: user.xp,
+                    level: user.level
                 });
             });
         } catch (err: any) {
@@ -333,7 +345,10 @@ export default function TheGate({ onSubmit }: TheGateProps) {
             longitude: selectedLocation.longitude,
             timezone: timezoneOffset,
             chart_data: chartData,
-            identity_key: newIdentityKey 
+            identity_key: newIdentityKey,
+            energy: 5,
+            xp: 0,
+            level: 0
       };
       userPayload.gender = gender;
 
@@ -378,7 +393,10 @@ export default function TheGate({ onSubmit }: TheGateProps) {
             language: detectedLang,
             gender,
             chart_data: null, 
-            identity_key: generatedKey
+            identity_key: generatedKey,
+            energy: 5, // Default for new users
+            xp: 0,
+            level: 0
         });
       });
   };

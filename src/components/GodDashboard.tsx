@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Activity, Coins, X, Sparkles, Battery, Zap, Lock, Copy, Share2, Terminal, User, Settings, LogOut, AlertTriangle, Eye, Radio } from 'lucide-react';
+import { Send, Activity, Coins, X, Sparkles, Battery, Zap, Lock, Copy, Share2, Terminal, User, Settings, LogOut, AlertTriangle, Eye, Radio, ArrowRight } from 'lucide-react';
 import { astrologyService, HoroscopeData } from '@/services/astrologyService';
 import { generateGodResponse } from '@/app/actions/generateGodResponse';
 import { security } from '@/lib/security';
@@ -81,9 +81,30 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [sanity, setSanity] = useState(100);
-  const [energy, setEnergy] = useState(5); 
+  const [energy, setEnergy] = useState(userData.energy || 5); 
+  const [maxEnergy, setMaxEnergy] = useState(userData.max_energy || 5);
+  const [xp, setXp] = useState(userData.xp || 0);
+  const [level, setLevel] = useState(userData.level || 0);
   const [showPaymentModal, setShowPaymentModal] = useState<{show: boolean, type: PaymentType | null}>({ show: false, type: null });
-  const [showProfileModal, setShowProfileModal] = useState(false);
+  // NEW STATE FOR GRIMOIRE
+  const [activeTab, setActiveTab] = useState<'STATUS' | 'ARCHIVES'>('STATUS');
+  const [savedScans, setSavedScans] = useState<any[]>([]);
+  const [selectedScan, setSelectedScan] = useState<any | null>(null);
+
+  useEffect(() => {
+      if (showProfileModal && activeTab === 'ARCHIVES') {
+          const fetchScans = async () => {
+              const supabase = createClient();
+              const { data } = await supabase
+                  .from('saved_scans')
+                  .select('*')
+                  .eq('user_key', finalUserData.identity_key)
+                  .order('created_at', { ascending: false });
+              if (data) setSavedScans(data);
+          };
+          fetchScans();
+      }
+  }, [showProfileModal, activeTab]);
   const [showKarmicModal, setShowKarmicModal] = useState(false); 
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [paymentResult, setPaymentResult] = useState<any>(null);
@@ -122,20 +143,11 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
     
     if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
         console.log("⚡ GOD MODE ACTIVE: INFINITE ENERGY");
-        localStorage.setItem(`energy_${today}`, '9999');
         setEnergy(9999);
         setLoading(false);
         initializationRef.current = true;
     }
     
-    const storedEnergy = localStorage.getItem(`energy_${today}`);
-    if (storedEnergy) {
-        setEnergy(parseInt(storedEnergy));
-    } else {
-        localStorage.setItem(`energy_${today}`, '5');
-        setEnergy(5);
-    }
-
     const init = async () => {
       audioService.play('init'); 
       setMessages([{ id: generateId(), text: t('init_neural'), sender: 'god' }]);
@@ -229,9 +241,24 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
   }, []);
 
   useEffect(() => {
-      const today = new Date().toISOString().split('T')[0];
-      localStorage.setItem(`energy_${today}`, energy.toString());
-  }, [energy]);
+      // SYNC ENERGY & XP TO SUPABASE (Debounced)
+      const timeout = setTimeout(async () => {
+          if (!finalUserData.identity_key) return;
+          const supabase = createClient();
+          await supabase.from('users').update({ energy, xp, level }).eq('identity_key', finalUserData.identity_key);
+      }, 2000);
+      return () => clearTimeout(timeout);
+  }, [energy, xp, level]);
+
+  // LEVEL UP LOGIC
+  useEffect(() => {
+      const newLevel = Math.floor(Math.sqrt(xp / 50));
+      if (newLevel > level) {
+          setLevel(newLevel);
+          audioService.play('init'); // Using init sound as level up for now
+          setMessages(prev => [...prev, { id: generateId(), text: `SYSTEM UPGRADE: ACCESS LEVEL ${newLevel} GRANTED.`, sender: 'god' }]);
+      }
+  }, [xp]);
 
   const saveMessage = async (text: string, sender: 'user' | 'god') => {
       if (!finalUserData.identity_key) return;
@@ -301,7 +328,8 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
     const text = security.sanitizeInput(rawText);
 
     setInput('');
-    setEnergy(e => e - 1);
+    setEnergy(e => Math.max(0, e - 1));
+    setXp(x => x + 1); // +1 XP for chatting
     inputRef.current?.focus();
     
     audioService.play('message'); 
@@ -332,6 +360,18 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
       let finalText = response;
       if (!isPremiumMode && response.length > 50 && Math.random() > 0.7) {
           finalText += `\n\n[ SYSTEM ALERT: FULL DIAGNOSTIC REQUIRED. UNLOCK DEEP SCAN ]`;
+      }
+
+      // SAVE PREMIUM RESPONSE TO GRIMOIRE
+      if (isPremiumMode || response.length > 300) { // Assuming long response = deep scan
+          const supabase = createClient();
+          await supabase.from('saved_scans').insert([{
+              user_key: finalUserData.identity_key,
+              type: 'DEEP_SCAN',
+              content: response,
+              moon_phase: horoscope?.moon_phase
+          }]);
+          setXp(x => x + 50); // +50 XP for Deep Scan
       }
 
       setMessages(prev => [...prev, { id: generateId(), text: finalText, sender: 'god' }]);
@@ -375,8 +415,14 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
       setIsVerifying(false);
       setShowPaymentModal({ show: false, type: null });
       
-      if (showPaymentModal.type === 'RECHARGE') setEnergy(e => e + 20);
-      if (showPaymentModal.type === 'DEEP_SCAN') setIsPremiumMode(true);
+      if (showPaymentModal.type === 'RECHARGE') {
+          setEnergy(e => e + 20);
+          setXp(x => x + 10);
+      }
+      if (showPaymentModal.type === 'DEEP_SCAN') {
+          setIsPremiumMode(true);
+          setXp(x => x + 20);
+      }
       
       setPaymentResult(null);
       
@@ -667,44 +713,105 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
       <AnimatePresence>
         {showProfileModal && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
-            <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }} className="foundation-glass p-10 w-full max-w-md relative">
+            <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }} className="foundation-glass p-10 w-full max-w-2xl relative max-h-[80vh] overflow-y-auto">
               <button onClick={() => setShowProfileModal(false)} className="absolute top-6 right-6 text-white/30 hover:text-white"><X className="w-5 h-5" /></button>
               
-              <div className="space-y-8 text-center">
-                <div className="border-b border-white/5 pb-8">
-                    <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4 border border-white/10">
-                        <User className="w-8 h-8 text-white" />
-                    </div>
-                    <h3 className="text-xl font-bold text-white tracking-tight">{finalUserData.name}</h3>
-                    <p className="text-white/40 text-xs mt-2 tracking-widest uppercase">{finalUserData.locationName}</p>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-white/5 p-6 border border-white/5">
-                        <div className="text-white/30 text-[10px] uppercase tracking-widest mb-2">{t('total_energy')}</div>
-                        <div className="text-3xl font-light text-white">{energy}</div>
-                    </div>
-                    <div className="bg-white/5 p-6 border border-white/5">
-                        <div className="text-white/30 text-[10px] uppercase tracking-widest mb-2">{t('sanity_level')}</div>
-                        <div className="text-3xl font-light text-white">{Math.floor(sanity)}%</div>
-                    </div>
-                </div>
-
-                <div className="space-y-3 pt-4">
-                    <button className="foundation-btn-ghost flex items-center justify-center gap-2">
-                        <Settings className="w-4 h-4" /> {t('system_settings')}
-                    </button>
-                    <button 
-                        onClick={() => {
-                            localStorage.removeItem('god_identity_key');
-                            window.location.reload();
-                        }}
-                        className="w-full bg-transparent text-red-500/50 hover:text-red-500 font-bold py-4 uppercase tracking-[0.2em] text-xs border border-red-900/20 hover:border-red-500/50 transition-all flex items-center justify-center gap-2"
-                    >
-                        <LogOut className="w-4 h-4" /> {t('terminate_session')}
-                    </button>
-                </div>
+              {/* TABS */}
+              <div className="flex justify-center gap-8 mb-8 border-b border-white/5 pb-4">
+                  <button 
+                      onClick={() => { setActiveTab('STATUS'); setSelectedScan(null); }}
+                      className={`text-xs uppercase tracking-[0.2em] transition-all ${activeTab === 'STATUS' ? 'text-white font-bold' : 'text-white/30 hover:text-white'}`}
+                  >
+                      Status
+                  </button>
+                  <button 
+                      onClick={() => setActiveTab('ARCHIVES')}
+                      className={`text-xs uppercase tracking-[0.2em] transition-all ${activeTab === 'ARCHIVES' ? 'text-white font-bold' : 'text-white/30 hover:text-white'}`}
+                  >
+                      Archives
+                  </button>
               </div>
+
+              {activeTab === 'STATUS' ? (
+                  <div className="space-y-8 text-center">
+                    <div className="border-b border-white/5 pb-8">
+                        <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4 border border-white/10">
+                            <User className="w-8 h-8 text-white" />
+                        </div>
+                        <h3 className="text-xl font-bold text-white tracking-tight">{finalUserData.name}</h3>
+                        <p className="text-white/40 text-xs mt-2 tracking-widest uppercase">{finalUserData.locationName}</p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="bg-white/5 p-6 border border-white/5">
+                            <div className="text-white/30 text-[10px] uppercase tracking-widest mb-2">{t('total_energy')}</div>
+                            <div className="text-3xl font-light text-white">{energy}</div>
+                        </div>
+                        <div className="bg-white/5 p-6 border border-white/5 relative overflow-hidden group">
+                            <div className="text-white/30 text-[10px] uppercase tracking-widest mb-2">ACCESS LEVEL</div>
+                            <div className="text-3xl font-light text-white">{level}</div>
+                            <div className="absolute bottom-0 left-0 h-1 bg-white/10 w-full">
+                                 <div className="h-full bg-white transition-all duration-1000" style={{ width: `${(xp % 50) * 2}%` }}></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="space-y-3 pt-4">
+                        <button className="foundation-btn-ghost flex items-center justify-center gap-2">
+                            <Settings className="w-4 h-4" /> {t('system_settings')}
+                        </button>
+                        <button 
+                            onClick={() => {
+                                localStorage.removeItem('god_identity_key');
+                                window.location.reload();
+                            }}
+                            className="w-full bg-transparent text-red-500/50 hover:text-red-500 font-bold py-4 uppercase tracking-[0.2em] text-xs border border-red-900/20 hover:border-red-500/50 transition-all flex items-center justify-center gap-2"
+                        >
+                            <LogOut className="w-4 h-4" /> {t('terminate_session')}
+                        </button>
+                    </div>
+                  </div>
+              ) : (
+                  // ARCHIVES TAB
+                  <div className="space-y-6">
+                      {selectedScan ? (
+                          <div className="text-left animate-in fade-in slide-in-from-bottom-4 duration-500">
+                              <button onClick={() => setSelectedScan(null)} className="text-xs uppercase tracking-widest text-white/50 hover:text-white mb-6 flex items-center gap-2">
+                                  <ArrowRight className="w-3 h-3 rotate-180" /> Back to Index
+                              </button>
+                              <div className="p-6 bg-white/5 border border-white/10 font-mono text-sm leading-relaxed whitespace-pre-wrap text-white/80">
+                                  {selectedScan.content}
+                              </div>
+                          </div>
+                      ) : (
+                          <>
+                            {savedScans.length === 0 ? (
+                                <div className="text-center py-12 text-white/30 text-xs uppercase tracking-widest">
+                                    No Archives Found.
+                                </div>
+                            ) : (
+                                <div className="grid gap-3">
+                                    {savedScans.map((scan, i) => (
+                                        <button 
+                                            key={i}
+                                            onClick={() => setSelectedScan(scan)}
+                                            className="w-full text-left p-4 bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/20 transition-all group"
+                                        >
+                                            <div className="flex justify-between items-center mb-1">
+                                                <span className="text-xs font-bold text-white group-hover:text-[#FFD700] uppercase tracking-widest">{scan.type.replace('_', ' ')}</span>
+                                                <span className="text-[9px] text-white/30">{new Date(scan.created_at).toLocaleDateString()}</span>
+                                            </div>
+                                            <p className="text-[10px] text-white/50 line-clamp-1 font-mono">
+                                                {scan.content.substring(0, 60)}...
+                                            </p>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                          </>
+                      )}
+                  </div>
+              )}
             </motion.div>
           </motion.div>
         )}
