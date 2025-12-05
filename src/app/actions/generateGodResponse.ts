@@ -71,8 +71,9 @@ export async function generateGodResponse(
   
   // DYNAMIC TOKEN RATIONING PROTOCOL
   // Standard: Limited Bandwidth (Low Cost, High Impact)
-  // Premium: Unlimited Bandwidth (Deep Analysis)
-  const MAX_TOKENS = context.tier === 'premium' ? 500 : 100;
+  // Premium: Unlimited Bandwidth (Deep Analysis) - Deep Scan gets 1000+
+  const isDeepScan = chatHistory.some(msg => msg.text.includes('DEEP_SCAN_INIT'));
+  const MAX_TOKENS = context.tier === 'premium' || isDeepScan ? 1500 : 100;
   
   const generate = async (modelName: string) => {
       const url = BASE_URL;
@@ -145,12 +146,32 @@ export async function generateGodResponse(
 
         ${GOD_KNOWLEDGE_BASE}
 
-        --- BANDWIDTH & TOKEN PROTOCOL (STRICT ENFORCEMENT) ---
-        TIER LEVEL: ${context.tier === 'premium' ? 'UNLIMITED' : 'RESTRICTED'}
+        --- DEEP SCAN PROTOCOL (IF ACTIVATED) ---
+        ${isDeepScan ? `
+        MODE: DEEP SCAN (PREMIUM DIAGNOSTIC)
+        DIRECTIVE: Synthesize ALL variables into a cohesive Soul Report.
+        STRUCTURE:
+        1. ### CORE OPERATING SYSTEM
+           - Analyze Sun (Ego), Moon (Mind), Ascendant (Path).
+           - Explain how they conflict or harmonize.
+        2. ### THE GLITCH (WEAKNESS)
+           - Deep dive into Saturn (Fear) and Rahu (Obsession).
+           - Explain WHY they are suffering.
+        3. ### CURRENT WEATHER (TRANSITS)
+           - How is the current sky affecting them RIGHT NOW?
+        4. ### THE PATCH (REMEDY)
+           - Specific, actionable advice based on their chart.
+           - NOT generic advice.
         
-        ${context.tier === 'premium' 
+        TONE: Clinical, Surgical, yet Divine.
+        ` : ''}
+
+        --- BANDWIDTH & TOKEN PROTOCOL (STRICT ENFORCEMENT) ---
+        TIER LEVEL: ${context.tier === 'premium' || isDeepScan ? 'UNLIMITED' : 'RESTRICTED'}
+        
+        ${(context.tier === 'premium' || isDeepScan)
             ? "DIRECTIVE: Provide deep, comprehensive analysis. Explain the 'Why' and 'How'. Use as many words as necessary to reveal the truth." 
-            : "CRITICAL WARNING: BANDWIDTH RESTRICTED. You have limited credits. Your response MUST be under 40 words. Be cryptic, abrupt, and precise. Do not waste tokens on pleasantries. Focus only on the Glitch."
+            : "CRITICAL WARNING: BANDWIDTH RESTRICTED. You have limited credits. Your response MUST be under 40 words. Be cryptic, abrupt, and precise. Do not waste tokens on pleasantries. Focus only on the Glitch. IF THE USER ASKS A COMPLEX QUESTION, END WITH: '[ SYSTEM ALERT: FULL DIAGNOSTIC REQUIRED. UNLOCK DEEP SCAN ]'"
         }
 
         --- GLOBAL OMNISCIENCE LAYER ---

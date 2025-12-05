@@ -315,10 +315,16 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
       
       if (isPremiumMode) setIsPremiumMode(false);
       
-      setMessages(prev => [...prev, { id: generateId(), text: response, sender: 'god' }]);
+      // UPSELL TRIGGER FOR FREE USERS
+      let finalText = response;
+      if (!isPremiumMode && response.length > 50 && Math.random() > 0.7) {
+          finalText += `\n\n[ SYSTEM ALERT: FULL DIAGNOSTIC REQUIRED. UNLOCK DEEP SCAN ]`;
+      }
+
+      setMessages(prev => [...prev, { id: generateId(), text: finalText, sender: 'god' }]);
       audioService.play('message');
       
-      saveMessage(response, 'god');
+      saveMessage(finalText, 'god');
 
     } catch (err) {
       audioService.play('error');
@@ -337,7 +343,7 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
       let desc = "Energy Recharge";
 
       if (type === 'PATCH') { amount = 3; desc = "System Patch"; }
-      if (type === 'DEEP_SCAN') { amount = 10; desc = "Deep Soul Analysis"; }
+      if (type === 'DEEP_SCAN') { amount = 10; desc = "Protocol: Ascension (Deep Scan)"; }
 
       try {
           const result: any = await paymentService.createPayment({ amount, description: desc });
@@ -466,9 +472,10 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
       {/* --- INPUT (MONOLITH) --- */}
       <div className="p-6 md:p-12 z-40 w-full max-w-5xl mx-auto">
         <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-4 items-center">
-             <button onClick={() => setShowPaymentModal({ show: true, type: 'DEEP_SCAN' })} className="flex items-center gap-2 px-4 py-2 border border-white/10 hover:border-white/30 transition-all rounded-none">
-                <Lock className="w-3 h-3 text-[#FFD700]" /> 
-                <span className="text-[10px] tracking-[0.2em] uppercase text-white/70">{t('deep_scan')}</span>
+             <button onClick={() => setShowPaymentModal({ show: true, type: 'DEEP_SCAN' })} className="flex items-center gap-2 px-4 py-2 border border-white/10 hover:border-[#FFD700]/50 transition-all rounded-none group relative overflow-hidden">
+                <div className="absolute inset-0 bg-[#FFD700]/10 translate-y-full group-hover:translate-y-0 transition-transform duration-500"></div>
+                <Lock className="w-3 h-3 text-[#FFD700] group-hover:scale-110 transition-transform" /> 
+                <span className="text-[10px] tracking-[0.2em] uppercase text-white/70 group-hover:text-white relative z-10">{t('deep_scan')}</span>
              </button>
             {SUGGESTED_QUESTIONS.map((q, i) => (
                 <button key={i} onClick={() => handleSend(null, q)} disabled={isTyping} className="whitespace-nowrap px-4 py-2 border border-white/5 hover:border-white/20 text-[10px] tracking-[0.1em] uppercase text-white/40 hover:text-white transition-all disabled:opacity-50">
@@ -546,8 +553,15 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
                 </div>
                 
                 <div>
-                    <h3 className="text-xl font-bold text-white uppercase tracking-[0.2em] mb-2">{t('system_recharge')}</h3>
-                    <p className="text-white/40 text-xs tracking-widest">{t('protocol_energy')}</p>
+                    <h3 className="text-xl font-bold text-white uppercase tracking-[0.2em] mb-2">
+                        {showPaymentModal.type === 'DEEP_SCAN' ? 'PROTOCOL: ASCENSION' : t('system_recharge')}
+                    </h3>
+                    <p className="text-white/40 text-xs tracking-widest leading-relaxed">
+                        {showPaymentModal.type === 'DEEP_SCAN' 
+                            ? "UNLOCK THE FULL SOURCE CODE OF YOUR SOUL. 1000X BANDWIDTH. ABSOLUTE TRUTH."
+                            : t('protocol_energy')
+                        }
+                    </p>
                 </div>
 
                 {paymentLoading ? (
