@@ -25,6 +25,7 @@ export interface HoroscopeData {
   raw_response?: any;
   nakshatras?: any;
   transits?: any;
+  moon_phase?: string; // New: Moon Phase
 }
 
 const RASHI_NAMES = [
@@ -33,7 +34,43 @@ const RASHI_NAMES = [
 ];
 
 // Helper for Psychic Profiling
-const getPsychologicalProfile = (planets: any, planetHouses: any) => {
+  const getMoonPhase = (date: string) => {
+    // Simple approximate calculation
+    const year = parseInt(date.split('-')[0]);
+    const month = parseInt(date.split('-')[1]);
+    const day = parseInt(date.split('-')[2]);
+    
+    let c = 0, e = 0, jd = 0, b = 0;
+
+    if (month < 3) {
+      // year--; // This logic is tricky for JS scope, let's fix variable usage
+      // We will use local vars for calculation
+    }
+    
+    // Cleaner algorithm for Moon Phase
+    const dateObj = new Date(date);
+    let phase = 0; // Default
+    
+    // Synodic Month = 29.5305882 days
+    // Known New Moon: Jan 6, 2000
+    const knownNewMoon = new Date('2000-01-06T18:14:00Z').getTime();
+    const targetDate = dateObj.getTime();
+    const diffDays = (targetDate - knownNewMoon) / (1000 * 60 * 60 * 24);
+    const cycles = diffDays / 29.5305882;
+    const currentCycle = cycles - Math.floor(cycles);
+    
+    // 0 = New, 0.5 = Full, 1 = New
+    if (currentCycle < 0.03 || currentCycle > 0.97) return 'New Moon';
+    if (currentCycle < 0.22) return 'Waxing Crescent';
+    if (currentCycle < 0.28) return 'First Quarter';
+    if (currentCycle < 0.47) return 'Waxing Gibbous';
+    if (currentCycle < 0.53) return 'Full Moon';
+    if (currentCycle < 0.72) return 'Waning Gibbous';
+    if (currentCycle < 0.78) return 'Last Quarter';
+    return 'Waning Crescent';
+  };
+
+  const getPsychologicalProfile = (planets: any, planetHouses: any) => {
     const profile = {
         strength: "Unknown Resilience",
         weakness: "Hidden Insecurity",
@@ -223,9 +260,11 @@ export const astrologyService = {
       // 6. PSYCHOLOGICAL PROFILING (The Soul Scanner)
       const psychology = getPsychologicalProfile(planets, planetHouses);
 
-  // 7. LIFE PATTERN MATCHING (The God Protocol)
+      // 7. LIFE PATTERN MATCHING (The God Protocol)
       // Future implementation: matchLifePatterns(planets, houses, currentDasha)
       // For now, we reserve this slot.
+
+      const moonPhase = getMoonPhase(new Date().toISOString());
 
       return {
           ascendant: ascendantName,
@@ -239,7 +278,8 @@ export const astrologyService = {
           nakshatras: nakshatras,
           isMoonChart: !!params.timeUnknown,
           raw_response: data,
-          transits: transitData
+          transits: transitData,
+          moon_phase: moonPhase // Pass Moon Phase
       };
     } catch (error: any) {
       console.error("API ERROR:", error);

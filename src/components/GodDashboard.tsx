@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Activity, Coins, X, Sparkles, Wifi, Battery, Zap, Lock, Copy, Share2, Terminal } from 'lucide-react';
+import { Send, Activity, Coins, X, Sparkles, Wifi, Battery, Zap, Lock, Copy, Share2, Terminal, User, Settings, LogOut } from 'lucide-react';
 import { astrologyService, HoroscopeData } from '@/services/astrologyService';
 import { generateGodResponse } from '@/app/actions/generateGodResponse';
 import { security } from '@/lib/security';
@@ -145,6 +145,7 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
   const [sanity, setSanity] = useState(100);
   const [energy, setEnergy] = useState(5); 
   const [showPaymentModal, setShowPaymentModal] = useState<{show: boolean, type: PaymentType | null}>({ show: false, type: null });
+  const [showProfileModal, setShowProfileModal] = useState(false);
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [paymentResult, setPaymentResult] = useState<any>(null);
   const [isVerifying, setIsVerifying] = useState(false); 
@@ -444,6 +445,10 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
             <button onClick={() => setShowPaymentModal({ show: true, type: 'RECHARGE' })} className="text-[#FFD700] hover:text-white transition-colors">
                 <Coins className="w-4 h-4" />
             </button>
+            <div className="w-[1px] h-3 bg-white/10"></div>
+            <button onClick={() => setShowProfileModal(true)} className="text-[#00FF41] hover:text-white transition-colors">
+                <User className="w-4 h-4" />
+            </button>
         </div>
       </div>
 
@@ -594,10 +599,58 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* --- PROFILE MODAL --- */}
+      <AnimatePresence>
+        {showProfileModal && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-end md:items-center justify-center p-0 md:p-4">
+            <motion.div initial={{ y: 50 }} animate={{ y: 0 }} exit={{ y: 50 }} className="bg-black w-full max-w-md border border-white/10 p-8 relative shadow-2xl">
+              <button onClick={() => setShowProfileModal(false)} className="absolute top-4 right-4 text-[#86868B] hover:text-white"><X className="w-4 h-4" /></button>
+              
+              <div className="space-y-6 font-mono">
+                <div className="text-center border-b border-white/10 pb-6">
+                    <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4 border border-white/10">
+                        <User className="w-8 h-8 text-[#00FF41]" />
+                    </div>
+                    <h3 className="text-lg font-bold text-white">{finalUserData.name}</h3>
+                    <p className="text-[#86868B] text-xs mt-1">{finalUserData.locationName}</p>
+                    <p className="text-[#00FF41] text-[10px] mt-2 break-all">{finalUserData.identity_key}</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-[#111] p-4 rounded border border-white/5 text-center">
+                        <div className="text-[#86868B] text-[10px] uppercase mb-1">Total Energy</div>
+                        <div className="text-2xl font-bold text-white">{energy}</div>
+                    </div>
+                    <div className="bg-[#111] p-4 rounded border border-white/5 text-center">
+                        <div className="text-[#86868B] text-[10px] uppercase mb-1">Sanity Level</div>
+                        <div className="text-2xl font-bold text-white">{Math.floor(sanity)}%</div>
+                    </div>
+                </div>
+
+                <div className="space-y-2">
+                    <button className="w-full bg-[#111] text-[#86868B] py-3 text-xs hover:bg-[#222] hover:text-white transition-colors flex items-center justify-center gap-2 border border-white/5">
+                        <Settings className="w-3 h-3" /> SYSTEM SETTINGS
+                    </button>
+                    <button 
+                        onClick={() => {
+                            localStorage.removeItem('god_identity_key');
+                            window.location.reload();
+                        }}
+                        className="w-full bg-[#111] text-red-500 py-3 text-xs hover:bg-red-900/20 transition-colors flex items-center justify-center gap-2 border border-white/5"
+                    >
+                        <LogOut className="w-3 h-3" /> TERMINATE SESSION
+                    </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       
-      {/* --- FOOTER STATUS --- */}
-      <div className="bg-black border-t border-white/5 text-[#333] text-[9px] font-mono text-center py-1 uppercase tracking-widest select-none">
-        SERVER: ONLINE | ENCRYPTION: ACTIVE | NODE: {Math.floor(Math.random() * 9999)}
+        {/* --- FOOTER STATUS --- */}
+      <div className={`bg-black border-t border-white/5 text-[#333] text-[9px] font-mono text-center py-1 uppercase tracking-widest select-none ${horoscope?.moon_phase === 'Full Moon' ? 'text-[#FFD700] animate-pulse' : ''}`}>
+        SERVER: ONLINE | ENCRYPTION: ACTIVE | NODE: {Math.floor(Math.random() * 9999)} | MOON: {horoscope?.moon_phase || "CALCULATING"}
       </div>
     </div>
   );

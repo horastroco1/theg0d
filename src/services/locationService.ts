@@ -60,8 +60,32 @@ export const locationService = {
     // Primary: Browser Language (e.g. 'es-ES' -> 'es')
     const browserLang = navigator.language || (navigator as any).userLanguage;
     if (browserLang) {
-        return browserLang.split('-')[0].toLowerCase();
+        const code = browserLang.split('-')[0].toLowerCase();
+        // Force Persian if code is 'fa'
+        if (code === 'fa') return 'fa';
+        return code;
     }
     return 'en';
+  },
+
+  detectUserLanguageByIP: async (): Promise<string> => {
+      try {
+          const response = await axios.get('https://ipapi.co/json/');
+          const country = response.data.country_code;
+          const langMap: Record<string, string> = {
+              'IR': 'fa', 'AF': 'fa', 'TJ': 'fa', // Persian Block
+              'ES': 'es', 'MX': 'es', 'AR': 'es', 'CO': 'es', // Spanish Block
+              'FR': 'fr', // French
+              'DE': 'de', // German
+              'BR': 'pt', 'PT': 'pt', // Portuguese
+              'CN': 'zh', // Chinese
+              'JP': 'ja', // Japanese
+              'RU': 'ru', // Russian
+              'AE': 'ar', 'SA': 'ar', 'EG': 'ar' // Arabic
+          };
+          return langMap[country] || 'en';
+      } catch (e) {
+          return 'en';
+      }
   }
 };

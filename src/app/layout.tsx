@@ -1,8 +1,9 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter } from 'next/font/google';
+import { Inter, Vazirmatn } from 'next/font/google';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'] });
+const vazirmatn = Vazirmatn({ subsets: ['arabic'] });
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -58,6 +59,13 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.className} bg-black text-white overflow-hidden overscroll-none`}>
+        <style dangerouslySetInnerHTML={{
+          __html: `
+            :root {
+              --font-vazir: ${vazirmatn.style.fontFamily};
+            }
+          `
+        }} />
         <div className="noise-overlay pointer-events-none fixed inset-0 z-[100] opacity-[0.03] mix-blend-overlay"></div>
         {children}
       </body>
