@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Activity, Coins, X, Sparkles, Wifi, Battery, Zap, Lock, Copy, Share2, Terminal, User, Settings, LogOut, AlertTriangle } from 'lucide-react';
+import { Send, Activity, Coins, X, Sparkles, Battery, Zap, Lock, Copy, Share2, Terminal, User, Settings, LogOut, AlertTriangle, Eye } from 'lucide-react';
 import { astrologyService, HoroscopeData } from '@/services/astrologyService';
 import { generateGodResponse } from '@/app/actions/generateGodResponse';
 import { security } from '@/lib/security';
@@ -46,6 +46,32 @@ const TypewriterEffect = ({ text, onComplete }: { text: string, onComplete?: () 
   return <span>{displayedText}</span>;
 };
 
+// VISUAL MOON COMPONENT
+const VisualMoon = ({ phase, accentColor }: { phase: string | undefined, accentColor: string }) => {
+    // Simple approximation of phases to visual representation
+    // New, Waxing, Full, Waning
+    let shadowX = 0;
+    let opacity = 0.2;
+    let isFull = false;
+
+    if (phase === 'New Moon') { opacity = 0.05; }
+    else if (phase?.includes('Crescent')) { shadowX = 10; opacity = 0.4; }
+    else if (phase?.includes('Quarter')) { shadowX = 20; opacity = 0.6; }
+    else if (phase?.includes('Gibbous')) { shadowX = 30; opacity = 0.8; }
+    else if (phase === 'Full Moon') { shadowX = 0; opacity = 1; isFull = true; }
+
+    return (
+        <div className={`w-8 h-8 rounded-full relative ${isFull ? 'moon-glow-gold' : 'moon-glow'}`} style={{ backgroundColor: isFull ? '#FFD700' : '#F5F5F7', opacity: opacity }}>
+            {!isFull && (
+                <div 
+                    className="absolute inset-0 rounded-full bg-black transition-all duration-1000" 
+                    style={{ transform: `translateX(${shadowX}%) scale(0.9)` }}
+                ></div>
+            )}
+        </div>
+    );
+};
+
 export default function GodDashboard({ userData }: GodDashboardProps) {
   const initializationRef = useRef(false);
   const [loading, setLoading] = useState(true);
@@ -56,7 +82,7 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
   const [energy, setEnergy] = useState(5); 
   const [showPaymentModal, setShowPaymentModal] = useState<{show: boolean, type: PaymentType | null}>({ show: false, type: null });
   const [showProfileModal, setShowProfileModal] = useState(false);
-  const [showKarmicModal, setShowKarmicModal] = useState(false); // NEW: Karmic Alert Modal
+  const [showKarmicModal, setShowKarmicModal] = useState(false); 
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [paymentResult, setPaymentResult] = useState<any>(null);
   const [isVerifying, setIsVerifying] = useState(false); 
@@ -71,12 +97,13 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
   const t = (key: string) => getTranslation(userLang, key);
   const config = getCulturalConfig(userLang);
   const accentColor = config.accentColor;
+  const isRTL = ['fa', 'ar'].includes(userLang);
 
   useEffect(() => {
       const lang = userData.language || locationService.detectUserLanguage();
       setUserLang(lang);
-      document.dir = ['fa', 'ar'].includes(lang) ? 'rtl' : 'ltr';
-  }, [userData]);
+      document.dir = isRTL ? 'rtl' : 'ltr';
+  }, [userData, isRTL]);
 
   const finalUserData = userData || {
     name: "Subject",
@@ -152,13 +179,15 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
                 }));
                 setMessages(decryptedMessages);
                 
-                setMessages(prev => [...prev, { id: generateId(), text: "CONNECTION RESTORED. I REMEMBER EVERYTHING.", sender: 'god' }]);
+                setMessages(prev => [...prev, { id: generateId(), text: "CONNECTION RESTORED. ARCHIVES LOADED.", sender: 'god' }]);
             } else {
                 setTimeout(() => {
                     setMessages(prev => [
                         ...prev,
-                        { id: generateId(), text: `${t('connected')} ${finalUserData.name}.`, sender: 'god' },
-                        { id: generateId(), text: `Moon: ${data.moon_sign} | Dasha: ${data.current_dasha}`, sender: 'god' },
+                        { id: generateId(), text: `${t('connected')} ${finalUserData.name.toUpperCase()}.`, sender: 'god' },
+                        // NEW PSYCHOLOGICAL OPENER
+                        { id: generateId(), text: `DETECTED: ${data.psychology?.strength?.toUpperCase() || "UNKNOWN POWER"} // HIDDEN: ${data.psychology?.weakness?.toUpperCase() || "UNKNOWN FEAR"}`, sender: 'god' },
+                        { id: generateId(), text: `CORE OBSESSION: ${data.psychology?.obsession?.toUpperCase() || "UNKNOWN HUNGER"}`, sender: 'god' },
                         { id: generateId(), text: t('listening'), sender: 'god' }
                     ]);
                 }, 1200);
@@ -319,137 +348,107 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
       }
   };
 
+  // FOUNDATION: Minimalist Message Bubble
+  // For RTL: We ensure flex-direction is correct, but also text-align.
+  // Tailwind's 'rtl' modifiers work well if dir="rtl" is set on body.
+  
   return (
-    <div className="flex flex-col h-[100dvh] bg-black text-[#F5F5F7] font-mono overflow-hidden" style={{ height: '100dvh' }}>
+    <div className="flex flex-col h-[100dvh] bg-[#050505] text-[#F5F5F7] font-sans overflow-hidden" style={{ height: '100dvh' }}>
       
-      <div className="noise-overlay"></div>
-      <div className="scanlines"></div>
-      
-      {/* --- HEADER --- */}
-      <div className="pt-4 pb-2 px-6 flex justify-between items-center bg-black/80 backdrop-blur-xl z-50 border-b border-white/5 sticky top-0 flex-shrink-0">
-        <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded bg-white/5 flex items-center justify-center border border-white/10" style={{ borderColor: `${accentColor}33` }}>
-                <Terminal className="w-4 h-4" style={{ color: accentColor }} />
-            </div>
+      {/* --- HEADER (FOUNDATION STYLE) --- */}
+      <div className="pt-6 pb-4 px-8 flex justify-between items-center z-50 sticky top-0 flex-shrink-0 bg-gradient-to-b from-[#050505] to-transparent">
+        <div className="flex items-center gap-4">
+            {/* VISUAL MOON ENGINE */}
+            <VisualMoon phase={horoscope?.moon_phase} accentColor={accentColor} />
+            
             <div>
-                <h1 className="text-xs font-bold tracking-widest uppercase text-white glitch-text" data-text="THEG0D">THEG0D</h1>
-                <div className="flex items-center gap-1 text-[9px] text-[#86868B] font-mono">
-                    <span className="w-1.5 h-1.5 animate-pulse" style={{ backgroundColor: accentColor }}></span>
-                    CONNECTED: 127.0.0.1
+                <h1 className="text-sm font-bold tracking-[0.2em] uppercase text-white opacity-90">THEG0D</h1>
+                <div className="flex items-center gap-2 text-[10px] text-white/40 font-mono tracking-widest">
+                    <span className="w-1 h-1 bg-white rounded-full animate-pulse"></span>
+                    {finalUserData.locationName.toUpperCase()}
                 </div>
             </div>
         </div>
 
-            <div className="flex items-center gap-4 bg-[#1C1C1E] px-4 py-2 rounded border border-white/5 font-mono">
-            
+        <div className="flex items-center gap-6">
             {/* KARMIC ALERT ICON */}
             {horoscope?.karmic_patterns && horoscope.karmic_patterns.length > 0 && (
                 <button onClick={() => setShowKarmicModal(true)} className="text-red-500 animate-pulse hover:text-red-400 transition-colors">
-                    <AlertTriangle className="w-4 h-4" />
+                    <AlertTriangle className="w-5 h-5" />
                 </button>
             )}
             
-            <div className="w-[1px] h-3 bg-white/10"></div>
-
-            <div className="flex items-center gap-2">
-                 <Battery className={`w-3 h-3 ${energy < 2 ? 'text-red-500 animate-pulse' : ''}`} style={{ color: energy >= 2 ? accentColor : undefined }} />
-                 <span className="text-[10px] text-[#86868B]">
-                    {energy > 9000 ? "INF" : `${energy}/5`}
-                 </span>
-            </div>
-            <div className="w-[1px] h-3 bg-white/10"></div>
-            <div className="flex items-center gap-2">
-                <span className="text-[10px] text-[#86868B]">CPU</span>
-                <div className="w-12 h-1 bg-[#333] overflow-hidden">
-                    <div className="h-full animate-pulse" style={{ width: `${sanity}%`, backgroundColor: accentColor }}></div>
-                </div>
-            </div>
-            <div className="w-[1px] h-3 bg-white/10"></div>
-            <button onClick={() => setShowPaymentModal({ show: true, type: 'RECHARGE' })} className="text-[#FFD700] hover:text-white transition-colors">
+            <button onClick={() => setShowPaymentModal({ show: true, type: 'RECHARGE' })} className="flex items-center gap-2 text-white/50 hover:text-[#FFD700] transition-colors font-mono text-xs">
                 <Coins className="w-4 h-4" />
+                <span>{energy}</span>
             </button>
-            <div className="w-[1px] h-3 bg-white/10"></div>
-            <button onClick={() => setShowProfileModal(true)} className="hover:text-white transition-colors" style={{ color: accentColor }}>
-                <User className="w-4 h-4" />
+            
+            <button onClick={() => setShowProfileModal(true)} className="text-white/50 hover:text-white transition-colors">
+                <Settings className="w-5 h-5" />
             </button>
         </div>
       </div>
 
-      {/* --- CHAT --- */}
-      <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 scrollbar-hide relative w-full">
+      {/* --- CHAT (THE VOID) --- */}
+      <div className="flex-1 overflow-y-auto p-4 md:p-12 space-y-8 scrollbar-hide relative w-full max-w-5xl mx-auto">
         
-        {/* Background Geometry */}
-        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.03] pointer-events-none animate-spin-slow">
-            <Wifi className="w-[800px] h-[800px]" />
-        </div>
-
         {messages.map((msg) => (
           <motion.div 
             key={msg.id}
-            initial={{ opacity: 0, x: msg.sender === 'god' ? -10 : 10 }}
-            animate={{ opacity: 1, x: 0 }}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
             className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
           >
-            <div className={`max-w-[85%] md:max-w-[65%] px-5 py-4 text-[14px] leading-relaxed relative group font-mono border ${
-              msg.sender === 'god' 
-                ? 'bg-black/40 shadow-[0_0_15px_rgba(0,255,65,0.05)] rounded-tr-xl rounded-br-xl rounded-bl-xl' 
-                : 'bg-white text-black border-transparent rounded-tl-xl rounded-bl-xl rounded-br-xl'
-            }`} style={msg.sender === 'god' ? { borderColor: `${accentColor}33`, color: accentColor } : {}}>
-              <div className="absolute -top-3 left-0 text-[9px] text-[#86868B] bg-black px-1 font-mono uppercase tracking-widest">
+            <div 
+                className={`max-w-[85%] md:max-w-[70%] py-2 px-4 text-[15px] leading-relaxed relative group ${
+                    msg.sender === 'god' 
+                        ? 'text-white/90 text-left' 
+                        : 'text-white/60 text-right rtl:text-left' 
+                }`}
+                style={isRTL && msg.sender === 'god' ? { textAlign: 'right' } : {}}
+            >
+              <div className={`text-[9px] uppercase tracking-[0.2em] mb-2 opacity-30 font-mono ${msg.sender === 'user' ? 'text-right' : 'text-left'}`}>
                 {msg.sender === 'god' ? 'SYSTEM' : 'SUBJECT'}
               </div>
               
               {msg.sender === 'god' ? (
-                <TypewriterEffect text={msg.text} />
+                <div className="font-light tracking-wide">
+                    <TypewriterEffect text={msg.text} />
+                </div>
               ) : (
-                msg.text
-              )}
-              
-              {msg.sender === 'god' && (
-                  <button 
-                    onClick={() => {
-                        const shareText = `SYSTEM LOG #4401:\n\n"${msg.text.substring(0, 100)}..."\n\n— theg0d.com`;
-                        if (navigator.share) {
-                            navigator.share({ title: 'theg0d', text: shareText, url: 'https://theg0d.com' });
-                        } else {
-                            navigator.clipboard.writeText(shareText);
-                            alert("LOG COPIED.");
-                        }
-                    }}
-                    className="absolute -right-8 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-[#86868B] hover:text-white"
-                  >
-                    <Share2 className="w-4 h-4" />
-                  </button>
+                <div className="font-normal italic">
+                    {msg.text}
+                </div>
               )}
             </div>
           </motion.div>
         ))}
         
         {isTyping && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-start">
-                <div className="font-mono text-xs animate-pulse" style={{ color: accentColor }}>
-                    [COMPILING FATE DATA...]
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-start px-4 md:px-12">
+                <div className="text-[10px] uppercase tracking-[0.2em] animate-pulse text-white/30">
+                    Analyzing...
                 </div>
             </motion.div>
         )}
         <div ref={chatEndRef} />
       </div>
 
-      {/* --- INPUT --- */}
-      <div className="p-4 md:p-6 bg-black/90 border-t border-white/5 flex-shrink-0 z-40 w-full flex flex-col gap-3 backdrop-blur-md">
-        <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1 items-center">
-             <button onClick={() => setShowPaymentModal({ show: true, type: 'DEEP_SCAN' })} className="flex items-center gap-1 whitespace-nowrap px-4 py-2 bg-[#FFD700]/10 border border-[#FFD700]/30 text-[10px] font-mono text-[#FFD700] hover:bg-[#FFD700]/20 transition-all flex-shrink-0 uppercase tracking-widest">
-                <Lock className="w-3 h-3" /> {t('deep_scan')}
+      {/* --- INPUT (MONOLITH) --- */}
+      <div className="p-6 md:p-12 z-40 w-full max-w-5xl mx-auto">
+        <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-4 items-center">
+             <button onClick={() => setShowPaymentModal({ show: true, type: 'DEEP_SCAN' })} className="flex items-center gap-2 px-4 py-2 border border-white/10 hover:border-white/30 transition-all rounded-none">
+                <Lock className="w-3 h-3 text-[#FFD700]" /> 
+                <span className="text-[10px] tracking-[0.2em] uppercase text-white/70">{t('deep_scan')}</span>
              </button>
             {SUGGESTED_QUESTIONS.map((q, i) => (
-                <button key={i} onClick={() => handleSend(null, q)} disabled={isTyping} className="whitespace-nowrap px-4 py-2 bg-[#1C1C1E] border border-white/10 text-[10px] font-mono text-[#86868B] hover:text-white transition-all flex-shrink-0 disabled:opacity-50 uppercase tracking-widest" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
+                <button key={i} onClick={() => handleSend(null, q)} disabled={isTyping} className="whitespace-nowrap px-4 py-2 border border-white/5 hover:border-white/20 text-[10px] tracking-[0.1em] uppercase text-white/40 hover:text-white transition-all disabled:opacity-50">
                     {q}
                 </button>
             ))}
         </div>
 
-        <form onSubmit={handleSend} className={`relative w-full flex items-center gap-4 border-b border-white/20`} style={{ borderColor: isPremiumMode ? '#FFD700' : 'rgba(255,255,255,0.2)' }}>
-            <span className="font-mono text-lg animate-pulse" style={{ color: accentColor }}>{'>'}</span>
+        <form onSubmit={handleSend} className="relative w-full group">
             <input 
                 ref={inputRef}
                 type="text" 
@@ -457,10 +456,14 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
                 onChange={e => setInput(e.target.value)}
                 placeholder={isPremiumMode ? t('placeholder_premium') : (energy > 0 ? config.placeholder : t('recharge'))}
                 disabled={energy <= 0}
-                className="w-full bg-transparent text-white py-4 font-mono text-base outline-none placeholder-[#333]"
+                className="foundation-input"
                 autoComplete="off"
             />
-            <button type="submit" disabled={!input.trim() || isTyping || energy <= 0} className={`p-2 transition-colors disabled:opacity-30 ${isPremiumMode ? 'text-[#FFD700]' : 'text-white'}`} style={{ color: !isPremiumMode ? accentColor : undefined }}>
+            <button 
+                type="submit" 
+                disabled={!input.trim() || isTyping || energy <= 0} 
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-white/20 hover:text-white transition-colors disabled:opacity-0"
+            >
                 <Send className="w-5 h-5" />
             </button>
         </form>
@@ -469,37 +472,35 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
       {/* --- PAYMENT MODAL --- */}
       <AnimatePresence>
         {showPaymentModal.show && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-end md:items-center justify-center p-0 md:p-4">
-            <motion.div initial={{ y: 50 }} animate={{ y: 0 }} exit={{ y: 50 }} className="bg-black w-full max-w-md border p-8 relative shadow-[0_0_50px_rgba(0,255,65,0.1)]" style={{ borderColor: `${accentColor}4D` }}>
-              <button onClick={() => setShowPaymentModal({ show: false, type: null })} className="absolute top-4 right-4 text-[#86868B] hover:text-white"><X className="w-4 h-4" /></button>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
+            <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }} className="foundation-glass p-12 w-full max-w-md relative">
+              <button onClick={() => setShowPaymentModal({ show: false, type: null })} className="absolute top-6 right-6 text-white/30 hover:text-white"><X className="w-5 h-5" /></button>
               
-              <div className="text-center space-y-6 font-mono">
-                <div className="w-16 h-16 border flex items-center justify-center mx-auto relative" style={{ borderColor: accentColor }}>
-                    <div className="absolute inset-0 opacity-10 animate-pulse" style={{ backgroundColor: accentColor }}></div>
-                    <Coins className="w-8 h-8" style={{ color: accentColor }} />
+              <div className="text-center space-y-8">
+                <div className="w-20 h-20 border border-white/10 flex items-center justify-center mx-auto rounded-full bg-white/5">
+                    <Coins className="w-8 h-8 text-[#FFD700]" />
                 </div>
                 
                 <div>
-                    <h3 className="text-xl text-white uppercase tracking-widest mb-2">{t('system_recharge')}</h3>
-                    <p className="text-[#86868B] text-xs">{t('protocol_energy')}</p>
+                    <h3 className="text-xl font-bold text-white uppercase tracking-[0.2em] mb-2">{t('system_recharge')}</h3>
+                    <p className="text-white/40 text-xs tracking-widest">{t('protocol_energy')}</p>
                 </div>
 
                 {paymentLoading ? (
                   <div className="py-8 flex flex-col items-center gap-4">
-                      <div className="w-12 h-12 border-4 border-white/10 rounded-full animate-spin" style={{ borderTopColor: accentColor }}></div>
-                      <div className="text-xs blink" style={{ color: accentColor }}>{t('generating_address')}</div>
+                      <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                      <div className="text-xs tracking-[0.2em] text-white/50">{t('generating_address')}</div>
                   </div>
                 ) : paymentResult ? (
                     <div className="space-y-6">
-                         <div className="bg-white p-2 w-fit mx-auto border border-white/20">
-                             <img src={paymentResult.qr_code_url} alt="QR Code" className="w-40 h-40 object-contain" />
+                         <div className="bg-white p-4 w-fit mx-auto">
+                             <img src={paymentResult.qr_code_url} alt="QR Code" className="w-32 h-32 object-contain" />
                          </div>
-                         <div className="space-y-2">
-                              <p className="text-[10px] text-[#86868B] uppercase tracking-widest">{t('send_amount')} {paymentResult.amount} {paymentResult.pay_currency.toUpperCase()}</p>
+                         <div className="space-y-4">
+                              <p className="text-xs text-white uppercase tracking-widest">{t('send_amount')} {paymentResult.amount} {paymentResult.pay_currency.toUpperCase()}</p>
                               <div 
                                  onClick={() => navigator.clipboard.writeText(paymentResult.pay_address)}
-                                 className="bg-[#111] p-3 border border-dashed border-[#333] text-[10px] break-all cursor-pointer hover:border-white transition-all text-center"
-                                 style={{ color: accentColor }}
+                                 className="p-4 border border-white/10 text-[10px] font-mono text-white/70 break-all cursor-pointer hover:bg-white/5 transition-all text-center"
                               >
                                  {paymentResult.pay_address}
                               </div>
@@ -507,14 +508,13 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
                          <button 
                              onClick={confirmPayment}
                              disabled={isVerifying}
-                             className="w-full text-black font-bold py-4 uppercase tracking-widest hover:bg-white transition-colors disabled:opacity-50"
-                             style={{ backgroundColor: accentColor }}
+                             className="foundation-btn"
                          >
                              {isVerifying ? t('verifying') : t('confirm_tx')}
                          </button>
                     </div>
                 ) : (
-                    <button onClick={handlePayment} className="w-full text-black font-bold py-4 uppercase tracking-widest hover:bg-white transition-colors flex items-center justify-center gap-2" style={{ backgroundColor: accentColor }}>
+                    <button onClick={handlePayment} className="foundation-btn flex items-center justify-center gap-2">
                         <Zap className="w-4 h-4" /> {t('initiate_transfer')}
                     </button>
                 )}
@@ -527,39 +527,38 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
       {/* --- KARMIC ALERT MODAL --- */}
       <AnimatePresence>
         {showKarmicModal && horoscope?.karmic_patterns && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-xl flex items-center justify-center p-4">
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-black w-full max-w-2xl border border-red-500/50 p-8 relative shadow-[0_0_100px_rgba(255,0,0,0.2)] overflow-y-auto max-h-[80vh]">
-              <button onClick={() => setShowKarmicModal(false)} className="absolute top-4 right-4 text-[#86868B] hover:text-white"><X className="w-6 h-6" /></button>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4">
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-[#0A0A0A] w-full max-w-2xl border border-red-900/30 p-10 relative shadow-[0_0_100px_rgba(255,0,0,0.1)] overflow-y-auto max-h-[80vh]">
+              <button onClick={() => setShowKarmicModal(false)} className="absolute top-6 right-6 text-white/30 hover:text-white"><X className="w-5 h-5" /></button>
               
-              <div className="text-center mb-8">
-                  <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-500 animate-pulse">
-                      <AlertTriangle className="w-10 h-10 text-red-500" />
+              <div className="text-center mb-10">
+                  <div className="w-16 h-16 bg-red-900/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-red-900/30 animate-pulse">
+                      <AlertTriangle className="w-8 h-8 text-red-500" />
                   </div>
-                  <h2 className="text-2xl font-bold text-red-500 tracking-widest uppercase">SYSTEM ALERT: KARMIC ANOMALY</h2>
-                  <p className="text-[#86868B] text-xs mt-2 uppercase tracking-widest">The following patterns have been detected in your source code.</p>
+                  <h2 className="text-xl font-bold text-white tracking-[0.3em] uppercase">ANOMALY DETECTED</h2>
+                  <p className="text-red-500/70 text-[10px] mt-3 uppercase tracking-[0.2em]">Karmic patterns found in source code.</p>
               </div>
 
-              <div className="space-y-6">
+              <div className="space-y-8">
                   {horoscope.karmic_patterns.map((pattern, i) => (
-                      <div key={i} className="border border-white/10 bg-[#111] p-6 relative overflow-hidden group hover:border-red-500/50 transition-colors">
-                          <div className="absolute top-0 left-0 w-1 h-full bg-red-500"></div>
-                          <h3 className="text-lg font-bold text-white mb-2 uppercase">{pattern.id.replace('_', ' ')}</h3>
-                          <div className="space-y-4 text-sm">
+                      <div key={i} className="border-l-2 border-red-500 pl-6 py-2">
+                          <h3 className="text-sm font-bold text-white mb-3 uppercase tracking-widest">{pattern.id.replace('_', ' ')}</h3>
+                          <div className="space-y-4 text-sm font-light">
                               <div>
-                                  <span className="text-red-500 text-xs uppercase tracking-widest block mb-1">Diagnosis</span>
-                                  <p className="text-[#ccc]">{pattern.diagnosis}</p>
+                                  <span className="text-red-500/50 text-[10px] uppercase tracking-widest block mb-1">Diagnosis</span>
+                                  <p className="text-white/70 leading-relaxed">{pattern.diagnosis}</p>
                               </div>
                               <div>
-                                  <span className="text-[#00FF41] text-xs uppercase tracking-widest block mb-1">Solution Protocol</span>
-                                  <p className="text-[#ccc]">{pattern.solution}</p>
+                                  <span className="text-white/30 text-[10px] uppercase tracking-widest block mb-1">Protocol</span>
+                                  <p className="text-white/90 leading-relaxed">{pattern.solution}</p>
                               </div>
                           </div>
                       </div>
                   ))}
               </div>
 
-              <button onClick={() => setShowKarmicModal(false)} className="w-full mt-8 bg-red-500/10 border border-red-500 text-red-500 font-bold py-4 uppercase tracking-widest hover:bg-red-500 hover:text-black transition-all">
-                  ACKNOWLEDGE & DISMISS
+              <button onClick={() => setShowKarmicModal(false)} className="w-full mt-12 border border-red-900/30 text-red-500/70 hover:text-red-500 hover:border-red-500 font-bold py-4 uppercase tracking-[0.2em] text-xs transition-all">
+                  ACKNOWLEDGE
               </button>
             </motion.div>
           </motion.div>
@@ -569,43 +568,42 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
       {/* --- PROFILE MODAL --- */}
       <AnimatePresence>
         {showProfileModal && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-end md:items-center justify-center p-0 md:p-4">
-            <motion.div initial={{ y: 50 }} animate={{ y: 0 }} exit={{ y: 50 }} className="bg-black w-full max-w-md border border-white/10 p-8 relative shadow-2xl">
-              <button onClick={() => setShowProfileModal(false)} className="absolute top-4 right-4 text-[#86868B] hover:text-white"><X className="w-4 h-4" /></button>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
+            <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }} className="foundation-glass p-10 w-full max-w-md relative">
+              <button onClick={() => setShowProfileModal(false)} className="absolute top-6 right-6 text-white/30 hover:text-white"><X className="w-5 h-5" /></button>
               
-              <div className="space-y-6 font-mono">
-                <div className="text-center border-b border-white/10 pb-6">
-                    <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4 border border-white/10">
-                        <User className="w-8 h-8" style={{ color: accentColor }} />
+              <div className="space-y-8 text-center">
+                <div className="border-b border-white/5 pb-8">
+                    <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4 border border-white/10">
+                        <User className="w-8 h-8 text-white" />
                     </div>
-                    <h3 className="text-lg font-bold text-white">{finalUserData.name}</h3>
-                    <p className="text-[#86868B] text-xs mt-1">{finalUserData.locationName}</p>
-                    <p className="text-[10px] mt-2 break-all" style={{ color: accentColor }}>{finalUserData.identity_key}</p>
+                    <h3 className="text-xl font-bold text-white tracking-tight">{finalUserData.name}</h3>
+                    <p className="text-white/40 text-xs mt-2 tracking-widest uppercase">{finalUserData.locationName}</p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-[#111] p-4 rounded border border-white/5 text-center">
-                        <div className="text-[#86868B] text-[10px] uppercase mb-1">{t('total_energy')}</div>
-                        <div className="text-2xl font-bold text-white">{energy}</div>
+                    <div className="bg-white/5 p-6 border border-white/5">
+                        <div className="text-white/30 text-[10px] uppercase tracking-widest mb-2">{t('total_energy')}</div>
+                        <div className="text-3xl font-light text-white">{energy}</div>
                     </div>
-                    <div className="bg-[#111] p-4 rounded border border-white/5 text-center">
-                        <div className="text-[#86868B] text-[10px] uppercase mb-1">{t('sanity_level')}</div>
-                        <div className="text-2xl font-bold text-white">{Math.floor(sanity)}%</div>
+                    <div className="bg-white/5 p-6 border border-white/5">
+                        <div className="text-white/30 text-[10px] uppercase tracking-widest mb-2">{t('sanity_level')}</div>
+                        <div className="text-3xl font-light text-white">{Math.floor(sanity)}%</div>
                     </div>
                 </div>
 
-                <div className="space-y-2">
-                    <button className="w-full bg-[#111] text-[#86868B] py-3 text-xs hover:bg-[#222] hover:text-white transition-colors flex items-center justify-center gap-2 border border-white/5">
-                        <Settings className="w-3 h-3" /> {t('system_settings')}
+                <div className="space-y-3 pt-4">
+                    <button className="foundation-btn-ghost flex items-center justify-center gap-2">
+                        <Settings className="w-4 h-4" /> {t('system_settings')}
                     </button>
                     <button 
                         onClick={() => {
                             localStorage.removeItem('god_identity_key');
                             window.location.reload();
                         }}
-                        className="w-full bg-[#111] text-red-500 py-3 text-xs hover:bg-red-900/20 transition-colors flex items-center justify-center gap-2 border border-white/5"
+                        className="w-full bg-transparent text-red-500/50 hover:text-red-500 font-bold py-4 uppercase tracking-[0.2em] text-xs border border-red-900/20 hover:border-red-500/50 transition-all flex items-center justify-center gap-2"
                     >
-                        <LogOut className="w-3 h-3" /> {t('terminate_session')}
+                        <LogOut className="w-4 h-4" /> {t('terminate_session')}
                     </button>
                 </div>
               </div>
@@ -616,7 +614,7 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
       
       {/* --- FOOTER STATUS --- */}
       <div 
-        className={`bg-black border-t border-white/5 text-[#333] text-[9px] font-mono text-center py-1 uppercase tracking-widest select-none cursor-pointer ${horoscope?.moon_phase === 'Full Moon' ? 'text-[#FFD700] animate-pulse' : ''}`}
+        className={`border-t border-white/5 text-white/20 text-[9px] font-mono text-center py-3 uppercase tracking-[0.3em] select-none cursor-pointer hover:text-white/40 transition-colors bg-[#050505]`}
         onClick={handleAdminTrigger}
       >
         {t('server_online')} | {t('encryption_active')} | NODE: {Math.floor(Math.random() * 9999)} | {t('moon')}: {horoscope?.moon_phase || "CALCULATING"}

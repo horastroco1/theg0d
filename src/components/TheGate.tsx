@@ -9,7 +9,7 @@ import { supabase } from '@/lib/supabase';
 import { astrologyService } from '@/services/astrologyService';
 import BootSequence from './BootSequence';
 import { getTranslation } from '@/lib/translations'; 
-import { getCulturalConfig } from '@/lib/culturalConfig'; // IMPORT CULTURAL ENGINE
+import { getCulturalConfig } from '@/lib/culturalConfig'; 
 
 export interface FormData {
   name: string;
@@ -312,7 +312,6 @@ export default function TheGate({ onSubmit }: TheGateProps) {
       
       localStorage.setItem('god_identity_key', newIdentityKey);
 
-      // ROBUST INSERT: Handle gender column failure gracefully
       const userPayload: any = {
             name: name,
             birth_date: fullDate,
@@ -324,10 +323,6 @@ export default function TheGate({ onSubmit }: TheGateProps) {
             chart_data: chartData,
             identity_key: newIdentityKey 
       };
-      // Only add gender if database likely supports it (or try/catch the insert)
-      // For now, we assume the user will run the migration. If not, Supabase errors.
-      // To be safe, we can't dynamically check schema easily without admin API. 
-      // We will include it and catch the specific error if possible, or just rely on the migration being run.
       userPayload.gender = gender;
 
       const { error: dbError } = await supabase
@@ -336,7 +331,6 @@ export default function TheGate({ onSubmit }: TheGateProps) {
         
       if (dbError) {
         console.error("DB Backup Failed (Non-Critical):", JSON.stringify(dbError, null, 2));
-        // If failure is due to column missing, we proceed anyway since chartData is calculated
       }
 
       setIsLoading(false);
@@ -380,26 +374,28 @@ export default function TheGate({ onSubmit }: TheGateProps) {
 
   const handleStart = () => setStep(1);
 
+  // FOUNDATION PROTOCOL: Cinematic Transitions
   const containerVariants: Variants = {
-    hidden: { opacity: 0, scale: 0.95, filter: "blur(10px)" },
+    hidden: { opacity: 0, scale: 0.95, filter: "blur(20px)" },
     visible: { 
       opacity: 1, 
       scale: 1, 
       filter: "blur(0px)",
-      transition: { duration: 0.8, ease: [0.32, 0.72, 0, 1] } 
+      transition: { duration: 1.2, ease: [0.22, 1, 0.36, 1] } 
     },
-    exit: { opacity: 0, scale: 1.05, filter: "blur(20px)", transition: { duration: 0.5 } }
+    exit: { opacity: 0, scale: 1.05, filter: "blur(40px)", transition: { duration: 0.8 } }
   };
 
   return (
     <>
+    {/* WARP OVERLAY */}
     <AnimatePresence>
         {isWarping && (
             <motion.div
-                initial={{ opacity: 0, scale: 1 }}
-                animate={{ opacity: 1, scale: 1.5 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.8, ease: "circIn" }}
+                transition={{ duration: 1 }}
                 className="fixed inset-0 z-[999] bg-white mix-blend-difference pointer-events-none"
             />
         )}
@@ -409,15 +405,14 @@ export default function TheGate({ onSubmit }: TheGateProps) {
     
     <div className={`min-h-screen flex flex-col items-center justify-center relative p-6 bg-black text-[#F5F5F7] overflow-hidden font-mono ${isRTL ? 'rtl' : 'ltr'}`} dir={isRTL ? 'rtl' : 'ltr'}>
       
-      <div className="noise-overlay"></div>
-      <div className="scanlines"></div>
+      {/* --- FOUNDATION BACKGROUND --- */}
+      {/* No Scanlines. Pure Void. */}
       
-      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0 flex items-center justify-center opacity-20">
-        <div className="w-[800px] h-[800px] border rounded-full animate-spin-slow dashed-border" style={{ borderColor: `${accentColor}33` }}></div>
-        <div className="absolute w-[600px] h-[600px] border rounded-full animate-spin-reverse dashed-border" style={{ borderColor: `${accentColor}1A` }}></div>
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0 flex items-center justify-center opacity-10">
+        <div className="w-[800px] h-[800px] border rounded-full animate-pulse-slow" style={{ borderColor: accentColor }}></div>
       </div>
 
-      <div className={`absolute top-6 z-50 flex gap-2 ${isRTL ? 'left-6' : 'right-6'}`}>
+      <div className={`absolute top-6 z-50 flex gap-4 ${isRTL ? 'left-6' : 'right-6'}`}>
           {['en', 'es', 'fa'].map(lang => (
               <button 
                 key={lang}
@@ -425,12 +420,11 @@ export default function TheGate({ onSubmit }: TheGateProps) {
                     setDetectedLang(lang);
                     document.dir = ['fa', 'ar'].includes(lang) ? 'rtl' : 'ltr';
                 }}
-                className={`text-[10px] uppercase tracking-widest px-2 py-1 rounded border font-mono transition-colors ${
+                className={`text-[10px] uppercase tracking-[0.2em] transition-all ${
                     detectedLang === lang 
-                    ? `text-black` 
-                    : 'text-[#86868B] border-transparent hover:border-[#86868B]'
+                    ? `text-white font-bold border-b border-white pb-1` 
+                    : 'text-white/30 hover:text-white'
                 }`}
-                style={detectedLang === lang ? { backgroundColor: accentColor, borderColor: accentColor } : {}}
               >
                   {lang}
               </button>
@@ -445,15 +439,15 @@ export default function TheGate({ onSubmit }: TheGateProps) {
             initial="hidden"
             animate="visible"
             exit="exit"
-            className="text-center space-y-8 z-10 relative"
+            className="text-center space-y-12 z-[60] relative pointer-events-auto"
           >
             <motion.div 
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 40 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
+              transition={{ delay: 0.3, duration: 1.5, ease: "easeOut" }}
               className="inline-block"
             >
-              <h1 className="text-6xl md:text-9xl font-bold tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-white/40 select-none glitch-text" data-text="theg0d">
+              <h1 className="text-7xl md:text-9xl font-bold tracking-tighter text-white select-none mix-blend-overlay opacity-90" data-text="theg0d">
                 theg0d
               </h1>
             </motion.div>
@@ -461,9 +455,8 @@ export default function TheGate({ onSubmit }: TheGateProps) {
             <motion.p 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 0.6 }}
-              className="uppercase tracking-[0.3em] text-xs font-mono animate-pulse"
-              style={{ color: accentColor }}
+              transition={{ delay: 1, duration: 2 }}
+              className="uppercase tracking-[0.5em] text-xs text-white/50 font-mono"
             >
               {config.greeting}
             </motion.p>
@@ -472,15 +465,16 @@ export default function TheGate({ onSubmit }: TheGateProps) {
               onClick={handleStart}
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 1, type: "spring", stiffness: 200 }}
-              className="group relative bg-black border font-mono font-bold px-8 py-4 rounded hover:text-black transition-all flex items-center gap-2 mx-auto mt-8 z-50 overflow-hidden"
-              style={{ borderColor: accentColor, color: accentColor }}
+              transition={{ delay: 1.5, type: "spring", stiffness: 100 }}
+              className="group relative text-white font-bold py-4 px-12 rounded-none overflow-hidden transition-all cursor-pointer z-[70]"
             >
-              <div className="absolute inset-0 translate-y-full group-hover:translate-y-0 transition-transform duration-300" style={{ backgroundColor: accentColor }}></div>
-              <span className="relative z-10 flex items-center gap-2">
-                  {isRTL ? <ArrowRight className="w-4 h-4 rotate-180" /> : null}
+              <div className="absolute inset-0 border border-white/20 group-hover:border-white/100 transition-colors duration-500"></div>
+              <div className="absolute inset-0 bg-white/0 group-hover:bg-white/10 transition-colors duration-500"></div>
+              
+              <span className="relative z-10 flex items-center gap-4 uppercase tracking-[0.2em] text-xs">
+                  {isRTL ? <ArrowRight className="w-3 h-3 rotate-180" /> : null}
                   {t('enter')} 
-                  {!isRTL ? <ArrowRight className="w-4 h-4" /> : null}
+                  {!isRTL ? <ArrowRight className="w-3 h-3" /> : null}
               </span>
             </motion.button>
           </motion.div>
@@ -493,22 +487,17 @@ export default function TheGate({ onSubmit }: TheGateProps) {
              animate="visible"
              className="w-full max-w-md z-10 relative"
            >
-             <div className="bg-black/80 backdrop-blur-xl p-8 rounded border text-center space-y-6 shadow-[0_0_30px_rgba(0,255,65,0.1)] relative" style={{ borderColor: accentColor }}>
-                <div className="absolute top-0 left-0 w-2 h-2" style={{ backgroundColor: accentColor }}></div>
-                <div className="absolute top-0 right-0 w-2 h-2" style={{ backgroundColor: accentColor }}></div>
-                <div className="absolute bottom-0 left-0 w-2 h-2" style={{ backgroundColor: accentColor }}></div>
-                <div className="absolute bottom-0 right-0 w-2 h-2" style={{ backgroundColor: accentColor }}></div>
-
-                <div className="w-16 h-16 rounded flex items-center justify-center mx-auto border" style={{ borderColor: accentColor, backgroundColor: `${accentColor}1A` }}>
-                    <Key className="w-8 h-8" style={{ color: accentColor }} />
+             <div className="foundation-glass p-12 text-center space-y-8 relative">
+                <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto border border-white/20 bg-white/5">
+                    <Key className="w-8 h-8 text-white" />
                 </div>
                 
                 <div>
-                    <h3 className="text-2xl font-bold text-white mb-2 font-mono">{t('access_granted')}</h3>
-                    <p className="text-[#86868B] text-xs font-mono">
+                    <h3 className="text-3xl font-bold text-white mb-4 tracking-tight">{t('access_granted')}</h3>
+                    <p className="text-white/50 text-xs uppercase tracking-widest leading-relaxed">
                         {t('identity_key_generated')}
                         <br/>
-                        <span className="text-[#FF3333] uppercase font-bold animate-pulse">
+                        <span className="text-red-500 block mt-2">
                             {t('do_not_lose')}
                         </span>
                     </p>
@@ -516,18 +505,15 @@ export default function TheGate({ onSubmit }: TheGateProps) {
 
                 <div 
                     onClick={copyKey}
-                    className="bg-black p-4 border font-mono text-lg tracking-widest cursor-pointer transition-all flex items-center justify-between group relative overflow-hidden"
-                    style={{ borderColor: `${accentColor}80`, color: accentColor }}
+                    className="foundation-input text-center cursor-pointer hover:bg-white/10 flex items-center justify-between group"
                 >
-                    <div className="absolute inset-0 scanlines opacity-50"></div>
-                    <span className="relative z-10">{generatedKey}</span>
-                    <Copy className="w-4 h-4 opacity-50 group-hover:opacity-100 relative z-10" />
+                    <span className="relative z-10 font-mono text-sm tracking-[0.2em]">{generatedKey}</span>
+                    <Copy className="w-4 h-4 opacity-50 group-hover:opacity-100 transition-opacity" />
                 </div>
 
                 <button
                     onClick={proceedWithKey}
-                    className="w-full text-black font-bold py-4 font-mono hover:bg-white transition-colors"
-                    style={{ backgroundColor: accentColor }}
+                    className="foundation-btn"
                 >
                     {t('enter')}
                 </button>
@@ -542,33 +528,28 @@ export default function TheGate({ onSubmit }: TheGateProps) {
             animate="visible"
             className="w-full max-w-md z-10 relative"
           >
-            <div className="bg-black/80 backdrop-blur-xl p-8 rounded border border-white/10 relative overflow-visible shadow-2xl">
-              <div className="absolute top-0 left-0 w-full h-1 opacity-50" style={{ background: `linear-gradient(90deg, transparent, ${accentColor}, transparent)` }}></div>
+            <div className="foundation-glass p-10 relative overflow-hidden">
               
-              <div className="mb-8 text-center relative z-10">
-                <h2 className="text-xl font-bold tracking-tight text-white font-mono uppercase">
+              <div className="mb-10 text-center relative z-10">
+                <h2 className="text-2xl font-bold tracking-tight text-white uppercase">
                     {mode === 'NEW' ? t('identity') : t('login_title')}
                 </h2>
-                <p className="text-[#86868B] text-xs mt-2 font-mono">
+                <p className="text-white/40 text-[10px] mt-3 uppercase tracking-[0.2em]">
                     {mode === 'NEW' ? t('init_karmic_profile') : t('enter_identity_key')}
                 </p>
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-5 relative z-10 font-mono">
+              <form onSubmit={handleSubmit} className="space-y-6 relative z-10">
                 
                 {mode === 'LOGIN' ? (
                      // --- LOGIN INPUT (KEY) ---
                      <div className="relative group">
-                        <div className={`absolute top-4 ${isRTL ? 'right-4' : 'left-4'}`} style={{ color: accentColor }}>
-                            <Key className="w-5 h-5" />
-                        </div>
                         <input 
                             type="text" 
                             value={loginKey}
                             onChange={e => setLoginKey(e.target.value)}
                             placeholder="G0D-XXXX-XXXX" 
-                            className={`w-full bg-black border border-white/20 p-4 outline-none transition-all font-mono uppercase ${isRTL ? 'pr-12 text-right' : 'pl-12'}`}
-                            style={{ color: accentColor, borderColor: loginKey ? accentColor : 'rgba(255,255,255,0.2)' }}
+                            className="foundation-input text-center"
                             autoFocus
                         />
                      </div>
@@ -576,17 +557,14 @@ export default function TheGate({ onSubmit }: TheGateProps) {
                     // --- SIGNUP INPUTS ---
                     <>
                         <div className="relative group">
-                        <div className={`absolute top-4 text-[#86868B] group-focus-within:text-white ${isRTL ? 'right-4' : 'left-4'}`}>
-                            <Terminal className="w-5 h-5" />
-                        </div>
-                        <input 
-                            type="text" 
-                            value={name}
-                            onChange={e => setName(e.target.value)}
-                            placeholder={t('name')} 
-                            className={`w-full bg-black border border-white/20 focus:border-white text-white p-4 outline-none transition-all font-mono ${isRTL ? 'pr-12 text-right' : 'pl-12'}`}
-                            autoFocus
-                        />
+                            <input 
+                                type="text" 
+                                value={name}
+                                onChange={e => setName(e.target.value)}
+                                placeholder={t('name')} 
+                                className="foundation-input"
+                                autoFocus
+                            />
                         </div>
 
                         <AnimatePresence>
@@ -594,44 +572,39 @@ export default function TheGate({ onSubmit }: TheGateProps) {
                                 initial={{ opacity: 0, height: 0 }}
                                 animate={{ opacity: 1, height: 'auto' }}
                                 exit={{ opacity: 0, height: 0 }}
-                                className="space-y-5 overflow-visible"
+                                className="space-y-6 overflow-visible"
                             >
                                 {/* DATE SPLIT INPUTS */}
-                                <div className="relative">
-                                    <div className={`absolute top-3 text-[#86868B] ${isRTL ? 'right-4' : 'left-4'}`}>
-                                    <Calendar className="w-5 h-5" />
-                                    </div>
-                                    <div className={`flex gap-2 ${isRTL ? 'pr-12' : 'pl-12'} overflow-x-auto scrollbar-hide`}>
-                                        <input 
-                                            type="tel" 
-                                            pattern="[0-9]*"
-                                            value={day} 
-                                            onChange={e => handleDateChange('d', e.target.value)}
-                                            placeholder="DD"
-                                            maxLength={2}
-                                            className="w-1/3 min-w-[60px] text-center bg-black border border-white/20 focus:border-white text-white p-3 outline-none"
-                                        />
-                                        <input 
-                                            ref={monthRef} 
-                                            type="tel" 
-                                            pattern="[0-9]*"
-                                            value={month} 
-                                            onChange={e => handleDateChange('m', e.target.value)}
-                                            placeholder="MM"
-                                            maxLength={2}
-                                            className="w-1/3 min-w-[60px] text-center bg-black border border-white/20 focus:border-white text-white p-3 outline-none"
-                                        />
-                                        <input 
-                                            ref={yearRef} 
-                                            type="tel" 
-                                            pattern="[0-9]*"
-                                            value={year} 
-                                            onChange={e => handleDateChange('y', e.target.value)}
-                                            placeholder="YYYY"
-                                            maxLength={4}
-                                            className="w-1/3 min-w-[80px] text-center bg-black border border-white/20 focus:border-white text-white p-3 outline-none"
-                                        />
-                                    </div>
+                                <div className="flex gap-4">
+                                    <input 
+                                        type="tel" 
+                                        pattern="[0-9]*"
+                                        value={day} 
+                                        onChange={e => handleDateChange('d', e.target.value)}
+                                        placeholder="DD"
+                                        maxLength={2}
+                                        className="foundation-input text-center w-1/3"
+                                    />
+                                    <input 
+                                        ref={monthRef} 
+                                        type="tel" 
+                                        pattern="[0-9]*"
+                                        value={month} 
+                                        onChange={e => handleDateChange('m', e.target.value)}
+                                        placeholder="MM"
+                                        maxLength={2}
+                                        className="foundation-input text-center w-1/3"
+                                    />
+                                    <input 
+                                        ref={yearRef} 
+                                        type="tel" 
+                                        pattern="[0-9]*"
+                                        value={year} 
+                                        onChange={e => handleDateChange('y', e.target.value)}
+                                        placeholder="YYYY"
+                                        maxLength={4}
+                                        className="foundation-input text-center w-1/3"
+                                    />
                                 </div>
                                 
                                 {/* TIME INPUT */}
@@ -642,7 +615,7 @@ export default function TheGate({ onSubmit }: TheGateProps) {
                                             value={time}
                                             disabled={timeUnknown}
                                             onChange={e => setTime(e.target.value)}
-                                            className={`w-full text-center bg-black border border-white/20 focus:border-white text-white p-3 outline-none ${timeUnknown ? 'opacity-30' : ''}`}
+                                            className={`foundation-input text-center ${timeUnknown ? 'opacity-30' : ''}`}
                                         />
                                     </div>
                                     <div className="flex items-center gap-2 min-w-[120px]">
@@ -651,28 +624,26 @@ export default function TheGate({ onSubmit }: TheGateProps) {
                                             id="timeUnknown"
                                             checked={timeUnknown}
                                             onChange={e => setTimeUnknown(e.target.checked)}
-                                            className="w-4 h-4 rounded cursor-pointer bg-black border-white/20"
-                                            style={{ accentColor: accentColor }}
+                                            className="w-4 h-4 cursor-pointer accent-white"
                                         />
-                                        <label htmlFor="timeUnknown" className="text-[10px] text-[#86868B] cursor-pointer select-none font-mono whitespace-nowrap uppercase">
+                                        <label htmlFor="timeUnknown" className="text-[10px] text-white/60 cursor-pointer select-none uppercase tracking-widest">
                                             {t('time_unknown')}
                                         </label>
                                     </div>
                                 </div>
 
                                 {/* GENDER SELECTOR */}
-                                <div className="flex gap-2">
+                                <div className="flex gap-0 border border-white/10">
                                     {['male', 'female', 'other'].map((g) => (
                                         <button
                                             key={g}
                                             type="button"
                                             onClick={() => setGender(g)}
-                                            className={`flex-1 py-3 text-[10px] font-bold border transition-all uppercase ${
+                                            className={`flex-1 py-4 text-[10px] font-bold uppercase tracking-widest transition-all ${
                                                 gender === g 
-                                                ? 'text-black' 
-                                                : 'bg-black text-[#86868B] border-white/20 hover:border-white/40'
+                                                ? 'bg-white text-black' 
+                                                : 'bg-transparent text-white/40 hover:text-white'
                                             }`}
-                                            style={gender === g ? { backgroundColor: accentColor, borderColor: accentColor } : {}}
                                         >
                                             {g === 'male' && t('gender_m')}
                                             {g === 'female' && t('gender_f')}
@@ -683,9 +654,6 @@ export default function TheGate({ onSubmit }: TheGateProps) {
 
                                 {/* LOCATION INPUT */}
                                 <div className="relative z-[60]">
-                                    <div className={`absolute top-4 text-[#86868B] ${isRTL ? 'right-4' : 'left-4'}`}>
-                                        <MapPin className="w-5 h-5" />
-                                    </div>
                                     <input 
                                         type="text" 
                                         value={cityQuery}
@@ -694,22 +662,22 @@ export default function TheGate({ onSubmit }: TheGateProps) {
                                             setSelectedLocation(null);
                                         }}
                                         placeholder={t('city')} 
-                                        className={`w-full bg-black border border-white/20 focus:border-white text-white p-4 outline-none transition-all font-mono ${isRTL ? 'pr-12 text-right' : 'pl-12'}`}
+                                        className="foundation-input"
                                     />
                                     
                                     {cityQuery && (
                                         <button 
                                             type="button"
                                             onClick={() => { setCityQuery(''); setSelectedLocation(null); }}
-                                            className={`absolute top-4 text-[#86868B] hover:text-white ${isRTL ? 'left-10' : 'right-10'}`}
+                                            className={`absolute top-5 text-white/40 hover:text-white ${isRTL ? 'left-4' : 'right-4'}`}
                                         >
-                                            <X className="w-5 h-5" />
+                                            <X className="w-4 h-4" />
                                         </button>
                                     )}
 
                                     {isSearching && (
-                                        <div className={`absolute top-4 ${isRTL ? 'left-4' : 'right-4'}`} style={{ color: accentColor }}>
-                                            <Loader2 className="w-5 h-5 animate-spin" />
+                                        <div className={`absolute top-5 ${isRTL ? 'left-10' : 'right-10'}`}>
+                                            <Loader2 className="w-4 h-4 animate-spin text-white" />
                                         </div>
                                     )}
 
@@ -719,8 +687,7 @@ export default function TheGate({ onSubmit }: TheGateProps) {
                                                 initial={{ opacity: 0, y: -10 }}
                                                 animate={{ opacity: 1, y: 0 }}
                                                 exit={{ opacity: 0 }}
-                                                className="absolute top-full left-0 w-full mt-2 bg-black border z-[70] shadow-2xl max-h-48 overflow-y-auto"
-                                                style={{ borderColor: accentColor }}
+                                                className="absolute top-full left-0 w-full mt-0 bg-[#0A0A0A] border border-white/10 z-[70] shadow-2xl max-h-48 overflow-y-auto"
                                             >
                                                 {cityResults.map((loc, i) => (
                                                     <li 
@@ -730,12 +697,10 @@ export default function TheGate({ onSubmit }: TheGateProps) {
                                                             setCityQuery(`${loc.name}, ${loc.country}`);
                                                             setCityResults([]);
                                                         }}
-                                                        className={`px-4 py-3 hover:text-black cursor-pointer text-xs border-b border-white/10 last:border-none transition-colors flex items-center font-mono ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'}`}
-                                                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = accentColor}
-                                                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                                        className={`px-6 py-4 hover:bg-white/5 cursor-pointer text-xs border-b border-white/5 last:border-none transition-colors flex items-center font-mono ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'}`}
                                                     >
-                                                        <span className="font-bold">{loc.name}</span>
-                                                        <span className="opacity-60">{loc.country}</span>
+                                                        <span className="font-bold text-white">{loc.name}</span>
+                                                        <span className="opacity-40">{loc.country}</span>
                                                     </li>
                                                 ))}
                                             </motion.ul>
@@ -752,9 +717,9 @@ export default function TheGate({ onSubmit }: TheGateProps) {
                         <motion.div 
                             initial={{ opacity: 0, height: 0 }}
                             animate={{ opacity: 1, height: 'auto' }}
-                            className="text-[#FF3333] text-xs text-center font-mono bg-[#FF3333]/10 py-3 border border-[#FF3333]/30"
+                            className="text-red-500 text-xs text-center uppercase tracking-widest py-2"
                         >
-                            {`> ERROR: ${error}`}
+                            {`// ERROR: ${error}`}
                         </motion.div>
                     )}
                 </AnimatePresence>
@@ -763,34 +728,29 @@ export default function TheGate({ onSubmit }: TheGateProps) {
                   whileTap={{ scale: 0.98 }}
                   type="submit"
                   disabled={isLoading}
-                  className="w-full text-black font-bold py-4 uppercase tracking-widest hover:bg-white transition-colors flex items-center justify-center gap-2 disabled:opacity-50 mt-6"
-                  style={{ backgroundColor: accentColor }}
+                  className="foundation-btn mt-8"
                 >
-                  {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : (mode === 'NEW' ? t('init') : t('login_btn'))}
+                  {isLoading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : (mode === 'NEW' ? t('init') : t('login_btn'))}
                 </motion.button>
 
-                <div className="text-center pt-4 relative z-10">
+                <div className="text-center pt-6 relative z-10">
                     <button 
                         type="button"
                         onClick={() => {
                             setMode(mode === 'NEW' ? 'LOGIN' : 'NEW');
                             setError(null);
                         }}
-                        className="text-[#86868B] text-[10px] hover:text-white transition-colors flex items-center justify-center gap-2 mx-auto uppercase tracking-widest font-mono"
+                        className="foundation-btn-ghost"
                     >
-                        {mode === 'NEW' ? (
-                            <><Database className="w-3 h-3" /> {t('switch_login')}</>
-                        ) : (
-                            <><Globe className="w-3 h-3" /> {t('switch_new')}</>
-                        )}
+                        {mode === 'NEW' ? t('switch_login') : t('switch_new')}
                     </button>
                 </div>
 
               </form>
             </div>
             
-            <p className="text-center text-[#86868B] text-[9px] mt-8 uppercase tracking-widest opacity-30 relative z-10 font-mono">
-                ENCRYPTED CONNECTION :: PORT 443
+            <p className="text-center text-white/20 text-[9px] mt-8 uppercase tracking-[0.3em] relative z-10 font-mono">
+                SECURE LINK :: ENCRYPTED
             </p>
           </motion.div>
         )}
