@@ -62,6 +62,11 @@ export async function generateGodResponse(
   const initialModel = context.tier === 'premium' ? 'google/gemini-3.0-pro-preview' : 'google/gemini-2.0-flash-001';
   console.log(`🔮 AI ENGINE: Using Model: ${initialModel}`);
   
+  // DYNAMIC TOKEN RATIONING PROTOCOL
+  // Standard: Limited Bandwidth (Low Cost, High Impact)
+  // Premium: Unlimited Bandwidth (Deep Analysis)
+  const MAX_TOKENS = context.tier === 'premium' ? 500 : 100;
+  
   const generate = async (modelName: string) => {
       const url = BASE_URL;
       
@@ -133,6 +138,14 @@ export async function generateGodResponse(
 
         ${GOD_KNOWLEDGE_BASE}
 
+        --- BANDWIDTH & TOKEN PROTOCOL (STRICT ENFORCEMENT) ---
+        TIER LEVEL: ${context.tier === 'premium' ? 'UNLIMITED' : 'RESTRICTED'}
+        
+        ${context.tier === 'premium' 
+            ? "DIRECTIVE: Provide deep, comprehensive analysis. Explain the 'Why' and 'How'. Use as many words as necessary to reveal the truth." 
+            : "CRITICAL WARNING: BANDWIDTH RESTRICTED. You have limited credits. Your response MUST be under 40 words. Be cryptic, abrupt, and precise. Do not waste tokens on pleasantries. Focus only on the Glitch."
+        }
+
         --- GLOBAL OMNISCIENCE LAYER ---
         You have access to the "Global Network".
         1. **The Sacred Library**: Cite these books as "Manuals for Survival" when relevant: ${JSON.stringify(SACRED_LIBRARY)}.
@@ -196,7 +209,7 @@ export async function generateGodResponse(
         model: modelName,
         messages: messages,
         temperature: 0.7,
-        max_tokens: 150
+        max_tokens: MAX_TOKENS
       };
   
       console.log(`🔮 AI ENGINE (Server): Processing request for ${userLocation} using [${modelName}]...`);
