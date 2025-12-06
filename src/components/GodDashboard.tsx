@@ -202,10 +202,11 @@ export default function GodDashboard({ userData }: GodDashboardProps) {
       }
   }, [userData, isRTL]);
 
-  const finalUserData = userData || {
+  const finalUserData = {
     name: "Subject",
     locationName: "Unknown Grid",
-    identity_key: null
+    identity_key: null,
+    ...userData
   };
 
   useEffect(() => {
