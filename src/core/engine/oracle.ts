@@ -106,6 +106,11 @@ export async function generateGodResponse(
     4. If Saturn is in 10th House -> Say "Career/Authority Sector".
     5. If Saturn is in 1st House -> Say "Self/Identity Sector".
 
+    --- DIRECT ANSWER OVERRIDE ---
+    - If the user asks "Where is X?" or "What is my Y?", YOU MUST START YOUR RESPONSE WITH THE FACT.
+    - Example: "Saturn is in your 1st House." THEN explain the meaning.
+    - DO NOT REFUSE TO ANSWER due to "Karma" or "Firewalls" for simple fact checks.
+
     --- RESPONSE PROTOCOL ---
     - Be short, cryptic, and powerful.
     - Use "System Admin" metaphors (Glitch, Patch, Firewall, Source Code).
@@ -121,7 +126,7 @@ export async function generateGodResponse(
         const response = await axios.post('https://api.anthropic.com/v1/messages', {
             model: modelName,
             max_tokens: 1000,
-            temperature: 0.5,
+            temperature: 0.1, // CRITICAL: LOWERED FOR MAXIMUM FACTUAL ACCURACY
             system: systemContext,
             messages: chatHistory.map(msg => ({
                 role: msg.role === 'god' ? 'assistant' : 'user',
@@ -143,7 +148,7 @@ export async function generateGodResponse(
                 { role: 'system', content: systemContext },
                 ...chatHistory.map(msg => ({ role: msg.role === 'god' ? 'assistant' : 'user', content: msg.text }))
             ],
-            temperature: 0.5,
+            temperature: 0.1,
             max_tokens: 1000
         }, {
             headers: {
