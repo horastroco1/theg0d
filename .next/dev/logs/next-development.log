@@ -1,0 +1,56 @@
+[00:09:52.407] Server  ERROR    ⨯ Error: Cannot find module 'next/dist/client/components/builtin/global-not-found'
+Require stack:
+- /Users/sam/Desktop/apps/theg0d/node_modules/next/dist/server/dev/on-demand-entry-handler.js
+- /Users/sam/Desktop/apps/theg0d/node_modules/next/dist/server/dev/hot-reloader-turbopack.js
+- /Users/sam/Desktop/apps/theg0d/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js
+- /Users/sam/Desktop/apps/theg0d/node_modules/next/dist/server/lib/router-server.js
+- /Users/sam/Desktop/apps/theg0d/node_modules/next/dist/server/lib/start-server.js
+[00:09:52.444] Server  ERROR   Error: Cannot find module 'next/dist/pages/_error'
+Require stack:
+- /Users/sam/Desktop/apps/theg0d/node_modules/next/dist/server/dev/on-demand-entry-handler.js
+- /Users/sam/Desktop/apps/theg0d/node_modules/next/dist/server/dev/hot-reloader-turbopack.js
+- /Users/sam/Desktop/apps/theg0d/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js
+- /Users/sam/Desktop/apps/theg0d/node_modules/next/dist/server/lib/router-server.js
+- /Users/sam/Desktop/apps/theg0d/node_modules/next/dist/server/lib/start-server.js
+[00:09:52.477] Server  ERROR    ⨯ Error: Cannot find module 'next/dist/pages/_error'
+Require stack:
+- /Users/sam/Desktop/apps/theg0d/node_modules/next/dist/server/dev/on-demand-entry-handler.js
+- /Users/sam/Desktop/apps/theg0d/node_modules/next/dist/server/dev/hot-reloader-turbopack.js
+- /Users/sam/Desktop/apps/theg0d/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js
+- /Users/sam/Desktop/apps/theg0d/node_modules/next/dist/server/lib/router-server.js
+- /Users/sam/Desktop/apps/theg0d/node_modules/next/dist/server/lib/start-server.js
+[00:09:52.499] Server  ERROR   Error: Cannot find module 'next/dist/pages/_error'
+Require stack:
+- /Users/sam/Desktop/apps/theg0d/node_modules/next/dist/server/dev/on-demand-entry-handler.js
+- /Users/sam/Desktop/apps/theg0d/node_modules/next/dist/server/dev/hot-reloader-turbopack.js
+- /Users/sam/Desktop/apps/theg0d/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js
+- /Users/sam/Desktop/apps/theg0d/node_modules/next/dist/server/lib/router-server.js
+- /Users/sam/Desktop/apps/theg0d/node_modules/next/dist/server/lib/start-server.js
+[00:09:52.613] Server  ERROR    ⨯ Error: Cannot find module 'next/dist/client/components/builtin/global-not-found'
+Require stack:
+- /Users/sam/Desktop/apps/theg0d/node_modules/next/dist/server/dev/on-demand-entry-handler.js
+- /Users/sam/Desktop/apps/theg0d/node_modules/next/dist/server/dev/hot-reloader-turbopack.js
+- /Users/sam/Desktop/apps/theg0d/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js
+- /Users/sam/Desktop/apps/theg0d/node_modules/next/dist/server/lib/router-server.js
+- /Users/sam/Desktop/apps/theg0d/node_modules/next/dist/server/lib/start-server.js
+[00:09:52.650] Server  ERROR   Error: Cannot find module 'next/dist/pages/_error'
+Require stack:
+- /Users/sam/Desktop/apps/theg0d/node_modules/next/dist/server/dev/on-demand-entry-handler.js
+- /Users/sam/Desktop/apps/theg0d/node_modules/next/dist/server/dev/hot-reloader-turbopack.js
+- /Users/sam/Desktop/apps/theg0d/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js
+- /Users/sam/Desktop/apps/theg0d/node_modules/next/dist/server/lib/router-server.js
+- /Users/sam/Desktop/apps/theg0d/node_modules/next/dist/server/lib/start-server.js
+[00:09:52.677] Server  ERROR    ⨯ Error: Cannot find module 'next/dist/pages/_error'
+Require stack:
+- /Users/sam/Desktop/apps/theg0d/node_modules/next/dist/server/dev/on-demand-entry-handler.js
+- /Users/sam/Desktop/apps/theg0d/node_modules/next/dist/server/dev/hot-reloader-turbopack.js
+- /Users/sam/Desktop/apps/theg0d/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js
+- /Users/sam/Desktop/apps/theg0d/node_modules/next/dist/server/lib/router-server.js
+- /Users/sam/Desktop/apps/theg0d/node_modules/next/dist/server/lib/start-server.js
+[00:09:52.717] Server  ERROR   Error: Cannot find module 'next/dist/pages/_error'
+Require stack:
+- /Users/sam/Desktop/apps/theg0d/node_modules/next/dist/server/dev/on-demand-entry-handler.js
+- /Users/sam/Desktop/apps/theg0d/node_modules/next/dist/server/dev/hot-reloader-turbopack.js
+- /Users/sam/Desktop/apps/theg0d/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js
+- /Users/sam/Desktop/apps/theg0d/node_modules/next/dist/server/lib/router-server.js
+- /Users/sam/Desktop/apps/theg0d/node_modules/next/dist/server/lib/start-server.js
